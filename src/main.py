@@ -8,7 +8,27 @@ class Demo(ft.Column):
     def init(self):
         self.controls = [
             ft.Container(
-                bgcolor=ft.Colors.AMBER_100,
+                #border=ft.Border.all(1, ft.Colors.BLACK),
+                #border_radius = 10,
+                padding = 10,
+                content = ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        ft.Image(
+                            src="ENICEM.png",
+                            #width=100,
+                            height=100,
+                            fit=ft.BoxFit.CONTAIN,
+                        )
+                    ]
+                ),
+            ),
+            ft.Container(
+                # border=ft.Border.all(1, ft.Colors.BLACK),
+                # border_radius = 10,
+                padding = 10,
+                #bgcolor=ft.Colors.AMBER_100,
+
                 content = ft.Row(
                     alignment=ft.MainAxisAlignment.CENTER,
                     controls=[
@@ -17,6 +37,8 @@ class Demo(ft.Column):
                     ]
                 )
             )
+
+            
             
         ]
 
@@ -34,11 +56,18 @@ def main(page: ft.Page):
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.update()
 
+    page.navigation_bar = ft.NavigationBar(
+        destinations=[
+            ft.NavigationBarDestination(icon=ft.Icons.GESTURE, label=""),
+            ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Home"),
+            ft.NavigationBarDestination(icon=ft.Icons.GESTURE, label="")
+        ]
+    )
+
     demo = Demo()
     page.add(
         ft.SafeArea(
-            demo,
-            expand=True
+            demo
         ))
 
     
