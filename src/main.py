@@ -47,7 +47,23 @@ class Demo(ft.Column):
 
     def recibir_clicked(self, e):
         print("Ejecuta acción de recibir magazine")
+        
+    
 
+@ft.control
+class Settings(ft.Column):
+    def init(self):
+            self.controls = [
+                ft.Container(
+                    padding = 10,
+                    content = ft.Row(
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        controls=[
+                            ft.Text("Settings", size= 30)
+                        ]
+                    ),
+                )
+            ]
 
 
 def main(page: ft.Page):
@@ -55,16 +71,37 @@ def main(page: ft.Page):
     page.title = "Demo"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.update()
+    
+    demo = Demo()
+    settings = Settings()
+    
+    def on_navigation_change(e):
+            selected_index = e.control.selected_index
+            if selected_index == 0:
+                show_home()
+            elif selected_index == 1:
+                show_settings()
+            
+            page.update()
+            
+    def show_home():
+        page.controls.clear()
+        page.add(demo)
+        
+    def show_settings():
+        page.controls.clear()
+        page.add(settings)
 
     page.navigation_bar = ft.NavigationBar(
+        selected_index=0,
+        on_change=on_navigation_change,
         destinations=[
-            ft.NavigationBarDestination(icon=ft.Icons.GESTURE, label=""),
             ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Home"),
-            ft.NavigationBarDestination(icon=ft.Icons.GESTURE, label="")
+            ft.NavigationBarDestination(icon=ft.Icons.SETTINGS, label="Settings")
         ]
     )
 
-    demo = Demo()
+    
     page.add(
         ft.SafeArea(
             demo
