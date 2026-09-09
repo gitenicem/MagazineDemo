@@ -1,11 +1,15 @@
 import flet as ft
-from model.data import DataAccess
-from helpers.config import cargar_config
+from config.db_config import cargar_config
+from helpers.timer import Timer
+from controller.amrs import AmrsController
+from controller.datacontroller import DataController
 
 
-@ft.control
-class Demo(ft.Column):
-    def init(self):
+#@ft.control
+class Home(ft.Column):
+    def __init__(self):
+        super().__init__()
+        
         self.controls = [
             ft.Container(
                 #border=ft.Border.all(1, ft.Colors.BLACK),
@@ -50,30 +54,112 @@ class Demo(ft.Column):
         
     
 
-@ft.control
+#@ft.control
 class Settings(ft.Column):
-    def init(self):
+
+    def check_pass(self,e):
+         self.txtpassword.password = not e.control.value
+         self.txtpassword.update()
+
+    def save_amr_config(self, e):
+         pass
+    
+    def __init__(self, data: DataController):
+            super().__init__()
+            amrconfig = dict(enumerate(data.get_amr_config()))
+            self.txtpassword = ft.TextField(amrconfig[0].password, password=True)
+
             self.controls = [
+                 ft.Container(
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
+                    content=ft.Container(
+                         content=ft.Column(
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
+                            spacing=15,
+                            controls=[
+                                 ft.Text("AMR_CONFIG", weight=ft.FontWeight.W_700)
+                            ]
+                         )
+                    )
+                 ),
                 ft.Container(
-                    padding = 10,
-                    content = ft.Row(
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        controls=[
-                            ft.Text("Settings", size= 30)
-                        ]
-                    ),
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),  # Centrado absoluto válido en Flet moderno (0,0 es el centro)
+                    content=ft.Container(
+                        border=ft.Border.all(2, ft.Colors.BLACK),
+                        border_radius = 10,
+                        padding=20,
+                        bgcolor=ft.Colors.GREY_100,
+                        width=450,
+                        content=ft.Column(
+                            # SOLUCIÓN: El alineamiento horizontal correcto para Columnas en la nueva versión
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
+                            spacing=15,
+                            controls=[
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                    controls=[
+                                        ft.Text("ALIAS", weight=ft.FontWeight.W_700),
+                                        ft.TextField(amrconfig[0].alias)
+                                    ]
+                                ),
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                    controls=[
+                                        ft.Text("IP", weight=ft.FontWeight.W_700),
+                                        ft.TextField(amrconfig[0].ip)
+                                    ]
+                                ),
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                    controls=[
+                                        ft.Text("PUERTO", weight=ft.FontWeight.W_700),
+                                        ft.TextField(amrconfig[0].puerto) # type: ignore
+                                    ]
+                                ),
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                    controls=[
+                                        ft.Text("PASSWORD", weight=ft.FontWeight.W_700),
+                                        self.txtpassword
+                                    ]
+                                ),
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.END,
+                                    controls=[
+                                        ft.Checkbox("Show password", on_change=self.check_pass)
+                                    ]
+                                ),
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_AROUND,
+                                    controls=[
+                                        ft.Button(icon=ft.Icons.SAVE,content="Guardar", on_click=self.save_amr_config)
+                                    ]
+                                )
+                            ]
+                        )
+                    )
                 )
-            ]
+        ]
+            
 
 
-def main(page: ft.Page):
+
+
+async def main(page: ft.Page):
+    cargar_config()
+    data = DataController()
+    AmrsController.iniciar()
 
     page.title = "Demo"
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    #await page.window.center()
+    #page.window.full_screen=True
     page.update()
-    
-    demo = Demo()
-    settings = Settings()
+
+    # Vistas dsiponibles
+    home = Home()
+    settings = Settings(data=data)
     
     def on_navigation_change(e):
             selected_index = e.control.selected_index
@@ -81,19 +167,18 @@ def main(page: ft.Page):
                 show_home()
             elif selected_index == 1:
                 show_settings()
-            
             page.update()
             
     def show_home():
         page.controls.clear()
-        page.add(demo)
+        page.add(home)
         
     def show_settings():
         page.controls.clear()
         page.add(settings)
 
     page.navigation_bar = ft.NavigationBar(
-        selected_index=0,
+        selected_index=1,
         on_change=on_navigation_change,
         destinations=[
             ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Home"),
@@ -102,15 +187,10 @@ def main(page: ft.Page):
     )
 
     
-    page.add(
-        ft.SafeArea(
-            demo
-        ))
+    page.add(ft.SafeArea(home))
 
     
     
 
 if __name__ == "__main__":
-    cargar_config()
-    data = DataAccess()
     ft.run(main)
