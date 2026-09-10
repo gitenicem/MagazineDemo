@@ -10,20 +10,22 @@ class Timer:
     def __init__(self, periodo: float):
         self.periodo = periodo
         self._ultima_ejecucion: datetime.datetime | None = None
+        self.enabled = False
 
     def tic(self) -> bool:
         ahora = datetime.datetime.now()
 
         # Primera llamada: inicializa y dispara de inmediato
-        if self._ultima_ejecucion is None:
+        if self._ultima_ejecucion is None and self.enabled:
             self._ultima_ejecucion = ahora
             return True
 
-        if (ahora - self._ultima_ejecucion).total_seconds() >= self.periodo:
+        if (ahora - self._ultima_ejecucion).total_seconds() >= self.periodo and self.enabled: # type: ignore
             self._ultima_ejecucion = ahora
             return True
 
         return False
+
 
     def reset(self):
         """Reinicia el timer como si nunca hubiera corrido."""
