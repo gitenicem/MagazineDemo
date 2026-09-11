@@ -5,19 +5,84 @@ from config.db_config import cargar_config
 from helpers.estados import EstadosPiso, EstadosAmr
 from controller.amrs import AmrsController
 from controller.datacontroller import DataController
+from controller.manager import ManagerController as manager
+
+
+class Secuencia():
+    paso: int=0
+    origen: bool # Determina si es piso de origen
+
+    @classmethod
+    def init(cls, origen: bool):
+        cls.origen = origen
+        cls.paso = 1
+
+    @classmethod
+    def next(cls):
+        cls.paso+=1
+
+    @classmethod
+    def finish(cls):
+        cls.paso = 0
+
+    @classmethod
+    def running(cls):
+        return cls.paso!=0
+
+    @classmethod
+    def loop(cls):
+        match cls.paso:
+            case 1:
+                if cls.origen:
+                    print("[ORIGEN] Paso 1")
+                    cls.next()
+                else:
+                    print("[DESTINO] Paso 1")
+                    cls.next()
+            case 2:
+                if cls.origen:
+                    print("[ORIGEN] Paso 2")
+                    cls.next()
+                else:
+                    print("[DESTINO] Paso 2")
+                    cls.next()
+            case 3:
+                if cls.origen:
+                    print("[ORIGEN] Paso 3")
+                    cls.next()
+                else:
+                    print("[DESTINO] Paso 3")
+                    cls.next()
+            case 4:
+                if cls.origen:
+                    print("[ORIGEN] Paso 4")
+                    cls.next()
+                else:
+                    print("[DESTINO] Paso 4")
+                    cls.next()
+            case 5:
+                if cls.origen:
+                    print("[ORIGEN] Paso 5")
+                    cls.next()
+                else:
+                    print("[DESTINO] Paso 5")
+                    cls.next()
+            case _:
+                print("Finish")
+                cls.finish()
 
 
 
 #@ft.control
 class Home(ft.Column):
     db_data = None
-    pooling_activo = False
+    automatico_activo = False
 
     def __init__(self, data: DataController):
         super().__init__()
 
         self.db_data=data
-        #self.pooling_activo = False
+        #self.automatico_activo = False
 
 
         self.conveyor = ft.Image(
@@ -118,55 +183,77 @@ class Home(ft.Column):
         print("Ejecuta acción de recibir magazine")
 
     def automatico_clicked(self, e):
-        if self.pooling_activo:
-            self.pooling_activo = False
-            self.btnEntregar.disabled = True
-            self.btnRecibir.disabled = True
-        else:
-            self.pooling_activo = True
+        if self.automatico_activo:
+            self.automatico_activo = False
             self.btnEntregar.disabled = False
             self.btnRecibir.disabled = False
+        else:
+            self.conveyor.visible = False
+            self.automatico_activo = True
+            self.btnEntregar.disabled = True
+            self.btnRecibir.disabled = True
 
-        print(self.pooling_activo)
+        #print(self.automatico_activo)
 
 
     def did_mount(self):
         self.page.run_task(self.pooling)
+        self.page.run_task(self.update)
 
     #def will_unmount(self):
-    #    self.pooling_activo = False
+    #    self.automatico_activo = False
 
     
-    def amr_ejecutar_entrega(self, accion:EstadosAmr, piso: int):
-        # TODO Envía instrucción a amr
-        print(f"P{piso} accion")
-
-    def amr_ejecutar_recepcion(self, accion:EstadosAmr, piso: int):
+    def amr_ejecutar_entrega(self, accion:EstadosAmr, piso: int, origen: bool):
         # TODO Envía instrucción a amr
         print(f"P{piso} {accion}")
+        Secuencia.init(origen)
+
+    def amr_ejecutar_recepcion(self, accion:EstadosAmr, piso: int, origen: bool):
+        # TODO Envía instrucción a amr
+        print(f"P{piso} {accion}")
+        Secuencia.init(origen)
 
     async def pooling(self):
-        while self.pooling_activo:
-            try:
-                wip = self.db_data.get_estacion("WIP1") # type: ignore
-                estadoP1, estadoP2 = wip.pisos_estado.pisos.values() # type: ignore
+        while True:
+            if self.automatico_activo:
+                try:
+                    wip = self.db_data.get_estacion("WIP1") # type: ignore
+                    estadoP1, estadoP2 = wip.pisos_estado.pisos.values() # type: ignore
 
-                if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value:
-                    self.amr_ejecutar_recepcion(accion=EstadosAmr.RECIBIR.value, piso=1) # type: ignore
+                    if not Secuencia.running():
+                        if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value:
+                            if not Secuencia.running():
+                                self.amr_ejecutar_recepcion(accion=EstadosAmr.RECIBIR.value, piso=1, origen=True) # type: ignore
 
-                if estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value:
-                    self.amr_ejecutar_entrega(accion=EstadosAmr.ENTREGAR.value, piso=1) # type: ignore
+                        if estadoP1 == EstadosPiso.NONE.value:
+                            if not Secuencia.running():
+                                self.amr_ejecutar_entrega(accion=EstadosAmr.ENTREGAR.value, piso=1, origen=False) # type: ignore
 
-                if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value:
-                    self.amr_ejecutar_recepcion(accion=EstadosAmr.RECIBIR.value, piso=2) # type: ignore
+                        if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value:
+                            if not Secuencia.running():
+                                self.amr_ejecutar_recepcion(accion=EstadosAmr.RECIBIR.value, piso=2, origen=True) # type: ignore
 
-                if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value:
-                    self.amr_ejecutar_entrega(accion=EstadosAmr.ENTREGAR.value, piso=2) # type: ignore
+                        if estadoP2 == EstadosPiso.NONE.value:
+                            if not Secuencia.running():
+                                self.amr_ejecutar_entrega(accion=EstadosAmr.ENTREGAR.value, piso=2, origen=False) # type: ignore
 
-            except Exception as e:
-                print(f"Error en la consulta de BD: {e}")
+                except Exception as e:
+                    print(f"Error en la consulta de BD: {e}")
 
-            await asyncio.sleep(5) 
+            await asyncio.sleep(5)
+
+
+
+    # Ejecuta la secuencia
+    async def update(self):
+        while True:
+            if Secuencia.running():
+                Secuencia.loop()
+                await asyncio.sleep(4)
+            await asyncio.sleep(1)
+
+            
         
     
 
@@ -309,7 +396,7 @@ class Settings(ft.Column):
 async def main(page: ft.Page):
     cargar_config()
     data = DataController()
-    AmrsController.iniciar()
+    #AmrsController.iniciar()
 
     page.title = "Demo"
     page.theme = ft.Theme(color_scheme_seed=ft.Colors.SECONDARY)
