@@ -71,31 +71,8 @@ class DataAccess:
             except Exception as e:
                 raise Exception(f"Error al parsear estaciones detectadas: {e}")
 
-    @staticmethod
-    def get_manager_config() -> list[ManagerConfig]:
-        with DataAccess.__candado: # type: ignore
-            try:
-                config: list[ManagerConfig] = []
-                query = "SELECT * FROM manager_config"
-                res = DataAccess.__conexion.execute_query(query) # type: ignore
-                if res:
-                    config = [ManagerConfig(**row) for row in res]
-                return config
-            except Exception as e:
-                raise Exception(f"Error al parsear configuracion: {e}")
 
-    @staticmethod
-    def get_estaciones_config() -> list[EstacionConfig]:
-        with DataAccess.__candado: # type: ignore
-            try:
-                config: list[EstacionConfig] = []
-                query = "SELECT * FROM estaciones_config"
-                res = DataAccess.__conexion.execute_query(query) # type: ignore
-                if res:
-                    config = [EstacionConfig(**row) for row in res]
-                return config
-            except Exception as e:
-                raise Exception(f"Error al parsear configuracion: {e}")
+
 
     @staticmethod
     def get_amr_config() -> list[AmrConfig]:
@@ -118,21 +95,7 @@ class DataAccess:
             res = res.get("segundos")
             return res # type: ignore
 
-    @staticmethod
-    def save_estaciones_config(values: str) -> bool:
-        with DataAccess.__candado: # type: ignore
-            query = "UPDATE manager_config SET cfg_estaciones = %s WHERE id = 1"
-            params = (values,)
-            res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
-            return bool(res)
 
-    @staticmethod
-    def save_magazines_config(values: str) -> bool:
-        with DataAccess.__candado: # type: ignore
-            query = "UPDATE manager_config SET cfg_magazine = %s WHERE id = 1"
-            params = (values,)
-            res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
-            return bool(res)
 
     @staticmethod
     def delete_amr_config(alias: str) -> bool:
@@ -163,6 +126,57 @@ class DataAccess:
                     (cfg_alias, "", cfg_ip, cfg_port, cfg_password, "")
                 )
                 return bool(res)
+
+    @staticmethod
+    def set_servidor_acciones_entregar(piso: int, estacion: Estacion) -> bool:
+        estacion.servidor_acciones[f"P{piso}"] = "ENTREGAR"
+
+        with DataAccess.__candado: # type: ignore
+            query = "UPDATE estaciones SET servidor_acciones = %s WHERE id = 1"
+            params = (json.dumps(estacion.servidor_acciones),)
+            res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
+            return bool(res)
+
+
+    @staticmethod
+    def set_servidor_acciones_recibir(piso: int, estacion: Estacion) -> bool:
+        estacion.servidor_acciones[f"P{piso}"] = "RECIBIR"
+
+        with DataAccess.__candado: # type: ignore
+            query = "UPDATE estaciones SET servidor_acciones = %s WHERE id = 1"
+            params = (json.dumps(estacion.servidor_acciones),)
+            res = DataAccess.__conexion.execute_commit(query, params)
+            return bool(res)
+
+
+    @staticmethod
+    def enviar_orden_amr_entrega(piso:int):
+        value = {'P1':'','P2':''}
+        value[f"P{piso}"] = "ENTREGAR"
+        with DataAccess.__candado:
+            query = "UPDATE estaciones SET smema = %s WHERE id = 1"
+            params = (json.dumps(value),)
+            res = DataAccess.__conexion.execute_commit(query, params)
+            return bool(res)
+
+    @staticmethod
+    def enviar_orden_amr_recibe(piso:int):
+        value = {'P1':'','P2':''}
+        value[f"P{piso}"] = "RECIBIR"
+        with DataAccess.__candado:
+            query = "UPDATE estaciones SET smema = %s WHERE id = 1"
+            params = (json.dumps(value),)
+            res = DataAccess.__conexion.execute_commit(query, params)
+            return bool(res)
+
+    @staticmethod
+    def limpiar_orden_amr():
+        value = {'P1':'','P2':''}
+        with DataAccess.__candado:
+            query = "UPDATE estaciones SET smema = %s WHERE id = 1"
+            params = (json.dumps(value),)
+            res = DataAccess.__conexion.execute_commit(query, params)
+            return bool(res) 
 
 
     @staticmethod
@@ -250,42 +264,6 @@ class DataAccess:
             except Exception as e:
                 return {"status": "error", "error": str(e)}
 
-    def revisar_estaciones_version(self) -> bool:
-        actualizado, version = self.revisar_version("estaciones_version", self.__estaciones_version)
-        self.__estaciones_version = version
-        return actualizado
-
-    def revisar_arm_config_version(self):
-        actualizado, version = self.revisar_version("amr_config_version", self.__amr_config_version)
-        self.__amr_config_version = version
-        return actualizado
-
-    def revisar_estaciones_detectadas_version(self) -> bool:
-        actualizado, version = self.revisar_version("estaciones_detectadas_version", self.__estaciones_detectadas_version)
-        self.__estaciones_detectadas_version = version
-        return actualizado
-
-    def revisar_manager_config_version(self)-> bool:
-        actualizado, version = self.revisar_version("manager_config_version", self.__manager_config_version)
-        self.__manager_config_version = version
-        return actualizado
-
-    def revisar_estaciones_config_version(self) -> bool:
-        actualizado, version = self.revisar_version("estaciones_config_version", self.__estaciones_config_version)
-        self.__estaciones_config_version = version
-        return actualizado
-
-    def revisar_amr_config_version(self) -> bool:
-        actualizado, version = self.revisar_version("amr_config_version", self.__amr_config_version)
-        self.__amr_config_version = version
-        return actualizado
-
-    @staticmethod
-    def get_estaciones_tipo():
-        with DataAccess.__candado: # type: ignore
-            query = "SELECT tipo, recibe FROM estaciones"
-            res = DataAccess.__conexion.execute_query(query) # type: ignore
-            return res
 
     def revisar_version(self, table: str, version_var) -> tuple[bool,int]:
         with DataAccess.__candado: # type: ignore
@@ -296,142 +274,4 @@ class DataAccess:
                 return True, version # type: ignore
             else:
                 return False, version_var
-
-    @staticmethod
-    def obtener_usuarios() -> list:
-        with DataAccess.__candado: # type: ignore
-            query = "SELECT username FROM usuarios"
-            res = DataAccess.__conexion.execute_query(query) # type: ignore
-            return [r["username"] for r in res] if res else []
-
-    def obtener_flujo(self) -> dict:
-        with DataAccess.__candado: # type: ignore
-            query = "SELECT * FROM flujos WHERE id = 1"
-            [res] = DataAccess.__conexion.execute_query(query) # type: ignore
-            return res
-
-
-    @staticmethod
-    def registrar_usuario(username: str, password: str, admin: bool) -> bool:
-        password_hash = hash_password(password)
-
-        with DataAccess.__candado: # type: ignore
-            query = "INSERT INTO usuarios (username, password_hash, admin) VALUES (%s, %s, %s)"
-            params = (username, password_hash, admin) # guardar como string
-            res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
-            if res:
-                return True
-            else:
-                return False
-
-
-    @staticmethod
-    def actualizar_usuario(username: str, password: str) -> bool:
-        password_hash = hash_password(password)
-        with DataAccess.__candado: # type: ignore
-            query = "UPDATE usuarios SET password_hash = %s WHERE username = %s"
-            params = (password_hash, username)
-            res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
-            return bool(res)
-
-    @staticmethod
-    def actualizar_username(old_username: str, new_username: str) -> bool:
-        with DataAccess.__candado: # type: ignore
-            query = "UPDATE usuarios SET username = %s WHERE username = %s"
-            params = (new_username, old_username)
-            res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
-            return bool(res)
-
-    @staticmethod
-    def eliminar_usuario(username: str) -> bool:
-        with DataAccess.__candado: # type: ignore
-            query = "DELETE FROM usuarios WHERE username = %s"
-            params = (username,)
-            res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
-            return bool(res)
-
-    @staticmethod
-    def verificar_admin(username: str) -> bool:
-        with DataAccess.__candado: # type: ignore
-            query = "SELECT admin FROM usuarios WHERE username = %s"
-            params = (username,)
-            res = DataAccess.__conexion.execute_query(query, params) # type: ignore
-            return bool(res[0].get("admin")) if res else False
-
-    @staticmethod
-    def \
-            verificar_login(username: str, password: str) -> bool:
-        with DataAccess.__candado: # type: ignore
-            query = "SELECT password_hash FROM usuarios WHERE username = %s"
-            params = (username,)
-            if username and password:
-                res = DataAccess.__conexion.execute_query(query, params) # type: ignore
-            else:
-                return False
-
-            if not res:
-                return False
-
-            hash_guardado_str = res[0].get("password_hash")
-
-            # Verificar que el hash tiene formato bcrypt válido antes de comparar
-            if not is_hashed(hash_guardado_str): # type: ignore
-                return False
-
-            hash_guardado = hash_guardado_str.encode("utf-8") # type: ignore
-
-
-            return check_password(password, hash_guardado)
-
-
-
-    @staticmethod
-    def insertar_estacion(alias: str, mac: str, ip: str) -> dict:
-        with DataAccess.__candado: # type: ignore
-            hoy = datetime.now()
-            alias_p1 = F"{alias}_P1"
-            alias_p2 = F"{alias}_P2"
-
-            piso1 = PisoConfig(tipo="",alias=alias_p1,altura=0,recibe=False,entregar=False,tipo_recibo="",tipo_entrega="",orientacion_magazine="",orientacion_permitida_amr="",recibe_de=[])
-            piso2 = PisoConfig(tipo="",alias=alias_p2,altura=0,recibe=False,entregar=False,tipo_recibo="",tipo_entrega="",orientacion_magazine="",orientacion_permitida_amr="",recibe_de=[])
-            pisos_configuracion = PisosConfig()
-
-            piso1.alias = alias_p1
-            piso2.alias = alias_p2
-
-            pisos_configuracion.configs = {"piso1":piso1,"piso2":piso2}
-
-            pisos_conf = json.dumps({
-                "piso1": asdict(pisos_configuracion.piso1), # type: ignore
-                "piso2": asdict(pisos_configuracion.piso2) # type: ignore
-            }, ensure_ascii=False)
-
-
-            try:
-
-                query = """
-                        INSERT INTO estaciones (alias,mac, smema, pisos_estado, servidor_acciones, amr_estado,
-                                                tipo, habilitado, modo_operacion, recibe, coordenadas, \
-                                                pisos_configuracion, ultima_modificacion)
-                        VALUES (%s, %s,'', '{"P1": "", "P2": ""}', NULL, NULL, '', 0, 'Automatico',
-                                '', '{"x": 0, "y": 0}', %s, %s) \
-                        """
-
-
-                rows = DataAccess.__conexion.execute_commit(query, (alias,mac, pisos_conf, hoy)) # type: ignore
-                return {"status": "ok", "rows": rows}
-            except Exception as e:
-                return {"status": "error", "error": str(e)}
-
-    @staticmethod
-    def eliminar_estacion(alias: str) -> dict:
-        with DataAccess.__candado: # type: ignore
-            try:
-                query = "DELETE FROM estaciones WHERE alias = %s"
-                rows = DataAccess.__conexion.execute_commit(query, (alias,)) # type: ignore
-                return {"status": "ok", "rows": rows}
-            except Exception as e:
-                return {"status": "error", "error": str(e)}
-
-    # TODO Crear trigger en base de datos (revisar chat claude)
 

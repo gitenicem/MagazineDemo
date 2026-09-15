@@ -1,20 +1,30 @@
 import asyncio
 
 import flet as ft
+from typing import TYPE_CHECKING
 from config.db_config import cargar_config
 from helpers.estados import EstadosPiso, EstadosAmr
 from controller.amrs import AmrsController
 from controller.datacontroller import DataController
 from controller.manager import ManagerController as manager
 
+# Importaciones solo como tipos
+if TYPE_CHECKING:
+    from model.dataclass_estacion import Estacion
+
+data: DataController
+wip: Estacion
 
 class Secuencia():
     paso: int=0
     origen: bool # Determina si es piso de origen
+    global data
+    global wip
 
     @classmethod
-    def init(cls, origen: bool):
+    def init(cls, origen: bool, piso:int):
         cls.origen = origen
+        cls.piso = piso
         cls.paso = 1
 
     @classmethod
@@ -34,38 +44,49 @@ class Secuencia():
         match cls.paso:
             case 1:
                 if cls.origen:
-                    print("[ORIGEN] Paso 1")
-                    cls.next()
+                    print(f"[ORIGEN P{cls.piso}] Esperando estado ENTREGAR")
+                    if cls.piso == 1:
+                        if wip.pisos_estado.p1 == EstadosPiso.ENTREGAR.value:
+                            print(f"[ORIGEN P{cls.piso}] Enviando orden de recepcion al amr")
+                            if data.enviar_orden_amr_recibe(piso=cls.piso):
+                                cls.next()
+                    elif cls.piso == 2:
+                        if wip.pisos_estado.p2 == EstadosPiso.ENTREGAR.value:
+                            print(f"[ORIGEN] P{cls.piso} Enviando orden de entrega al amr")
+                            if data.enviar_orden_amr_recibe(piso=cls.piso):
+                                cls.next()
                 else:
-                    print("[DESTINO] Paso 1")
+                    print(f"[DESTINO P{cls.piso}] Paso 1")
                     cls.next()
             case 2:
                 if cls.origen:
-                    print("[ORIGEN] Paso 2")
-                    cls.next()
+                    print(f"[ORIGEN P{cls.piso}] Paso 2 Esperando amr PREPARADO")
+                    if wip.amr_estado.get(f"P{cls.piso}") == EstadosAmr.PREPARADO.value:
+                        cls.next()
                 else:
-                    print("[DESTINO] Paso 2")
+                    print(f"[DESTINO] P{cls.piso} Paso 2")
                     cls.next()
             case 3:
                 if cls.origen:
-                    print("[ORIGEN] Paso 3")
-                    cls.next()
+                    print(f"[ORIGEN] P{cls.piso} Paso 3 Esperando amr RECIBIENDO")
+                    if wip.amr_estado.get(f"P{cls.piso}") == EstadosAmr.RECIBIENDO.value:
+                        cls.next()
                 else:
-                    print("[DESTINO] Paso 3")
+                    print(f"[DESTINO] P{cls.piso} Paso 3")
                     cls.next()
             case 4:
                 if cls.origen:
-                    print("[ORIGEN] Paso 4")
+                    print(f"[ORIGEN] P{cls.piso} Paso 4 Esperando amr FINALIZADO")
                     cls.next()
                 else:
-                    print("[DESTINO] Paso 4")
+                    print(f"[DESTINO] P{cls.piso} Paso 4")
                     cls.next()
             case 5:
                 if cls.origen:
-                    print("[ORIGEN] Paso 5")
+                    print(f"[ORIGEN] P{cls.piso} Paso 5")
                     cls.next()
                 else:
-                    print("[DESTINO] Paso 5")
+                    print(f"[DESTINO] P{cls.piso} Paso 5")
                     cls.next()
             case _:
                 print("Finish")
@@ -204,39 +225,49 @@ class Home(ft.Column):
     #    self.automatico_activo = False
 
     
-    def amr_ejecutar_entrega(self, accion:EstadosAmr, piso: int, origen: bool):
-        # TODO Envía instrucción a amr
-        print(f"P{piso} {accion}")
-        Secuencia.init(origen)
+    def amr_ejecutar_entrega(self, piso:int, origen:bool):
+        print(f"P{piso} ENTREGAR")
+        Secuencia.init(origen, piso=piso)
 
-    def amr_ejecutar_recepcion(self, accion:EstadosAmr, piso: int, origen: bool):
-        # TODO Envía instrucción a amr
-        print(f"P{piso} {accion}")
-        Secuencia.init(origen)
+    def amr_ejecutar_recepcion(self, piso:int, origen:bool):
+        print(f"P{piso} RECIBIR")
+        Secuencia.init(origen, piso=piso)
+        
 
     async def pooling(self):
+        global wip
         while True:
             if self.automatico_activo:
                 try:
+                    # Actualiza variable global con los ultimos cambios
                     wip = self.db_data.get_estacion("WIP1") # type: ignore
                     estadoP1, estadoP2 = wip.pisos_estado.pisos.values() # type: ignore
 
+
                     if not Secuencia.running():
-                        if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value:
+                        if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE
                             if not Secuencia.running():
-                                self.amr_ejecutar_recepcion(accion=EstadosAmr.RECIBIR.value, piso=1, origen=True) # type: ignore
+                                # TODO Dar orden de entregar en servidor acciones
+                                self.db_data.set_servidor_acciones_entregar(piso=1, estacion=wip)
+                                self.amr_ejecutar_recepcion(piso=1, origen=True) # type: ignore
 
-                        if estadoP1 == EstadosPiso.NONE.value:
+                        if estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value: # ESTA VACIO
                             if not Secuencia.running():
-                                self.amr_ejecutar_entrega(accion=EstadosAmr.ENTREGAR.value, piso=1, origen=False) # type: ignore
+                                self.db_data.set_servidor_Acciones_recibir(piso=1, estacion = wip)
+                                self.amr_ejecutar_entrega(piso=1, origen=False) # type: ignore
 
-                        if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value:
+
+
+                        if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE
                             if not Secuencia.running():
+                                self.db_data.set_servidor_acciones_entregar(piso=2, estacion=wip)
                                 self.amr_ejecutar_recepcion(accion=EstadosAmr.RECIBIR.value, piso=2, origen=True) # type: ignore
 
-                        if estadoP2 == EstadosPiso.NONE.value:
+                        if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value: # ESTA VACIO
                             if not Secuencia.running():
-                                self.amr_ejecutar_entrega(accion=EstadosAmr.ENTREGAR.value, piso=2, origen=False) # type: ignore
+                                self.db_data.set_servidor_acciones_recibir(piso=2, estacion=wip)
+                                self.amr_ejecutar_entrega(piso=2, origen=False) # type: ignore
+
 
                 except Exception as e:
                     print(f"Error en la consulta de BD: {e}")
@@ -394,6 +425,7 @@ class Settings(ft.Column):
 
 
 async def main(page: ft.Page):
+    global data
     cargar_config()
     data = DataController()
     #AmrsController.iniciar()
