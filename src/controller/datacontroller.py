@@ -31,6 +31,9 @@ class DataController:
     def set_servidor_acciones_recibir(self, piso:int, estacion: Estacion):
         return self._data.set_servidor_acciones_recibir(piso=piso, estacion=estacion)
 
+    def limpiar_servidor_acciones(self, piso:int, estacion:Estacion):
+        return self._data.limpiar_servidor_acciones(piso=piso, estacion=estacion)
+
     def enviar_orden_amr_entrega(self, piso:int):
         return self._data.enviar_orden_amr_entrega(piso=piso)
 
