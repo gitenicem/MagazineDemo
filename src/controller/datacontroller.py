@@ -34,10 +34,10 @@ class DataController:
     def limpiar_servidor_acciones(self, piso:str, estacion:Estacion):
         return self._data.limpiar_servidor_acciones(piso=piso, estacion=estacion)
 
-    def enviar_orden_amr_entrega(self, piso:int):
+    def enviar_orden_amr_entrega(self, piso:str):
         return self._data.enviar_orden_amr_entrega(piso=piso)
 
-    def enviar_orden_amr_recibe(self, piso:int):
+    def enviar_orden_amr_recibe(self, piso:str):
         return self._data.enviar_orden_amr_recibe(piso=piso)
 
     def limpiar_orden_amr(self):

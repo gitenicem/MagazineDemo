@@ -160,32 +160,35 @@ class DataAccess:
 
 
     @staticmethod
-    def enviar_orden_amr_entrega(piso:int):
+    def enviar_orden_amr_entrega(piso:str):
         value = {'P1':'','P2':''}
         value[f"{piso}"] = "ENTREGAR"
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET smema = %s WHERE alias = 'WIP1' "
             params = (json.dumps(value),)
             res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
+            print(f"Ejecutada orden ENTREGAR AMR en {piso}")
             return bool(res)
 
     @staticmethod
-    def enviar_orden_amr_recibe(piso:int):
+    def enviar_orden_amr_recibe(piso:str):
         value = {'P1':'','P2':''}
         value[f"{piso}"] = "RECIBIR"
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET smema = %s WHERE alias = 'WIP1' "
             params = (json.dumps(value),)
             res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
+            print(f"Ejecutada orden RECIBIR AMR en {piso}")
             return bool(res)
 
     @staticmethod
     def limpiar_orden_amr():
         value = {'P1':'','P2':''}
         with DataAccess.__candado: # type: ignore 
-            query = "UPDATE estaciones SET smema = %s WHERE alias = 'alias' "
+            query = "UPDATE estaciones SET smema = %s WHERE alias = 'WIP1' "
             params = (json.dumps(value),)
             res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
+            print("Ejecutada orden limpieza AMR")
             return bool(res) 
 
 
