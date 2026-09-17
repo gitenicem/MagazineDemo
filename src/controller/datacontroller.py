@@ -22,6 +22,12 @@ class DataController:
     def get_amr_config(self):
         return self._data.get_amr_config()
 
+    def get_pisos_config(self):
+        return self._data.get_pisos_config()
+
+    def save_pisos_config(self, config:str):
+        return self._data.save_pisos_config(config)
+
     def save_amr_ip_puerto(self, alias:str, ip:str, puerto:int, password:str):
         return self._data.save_amr_ip_puerto(alias, ip, puerto, password)
 

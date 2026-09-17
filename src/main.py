@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import json
 import asyncio
 
@@ -379,8 +380,8 @@ class Home(ft.Column):
 
     def did_mount(self):
         Secuencia.set_home(self)
-        self.page.run_task(self.pooling)
-        self.page.run_task(self.update)
+        self.page.run_task(self.pooling) # Orquestador de flujos
+        self.page.run_task(self.update)  # Mantiene fresca la data durante la ejecución de un flujo
 
     #def will_unmount(self):
     #    self.automatico_activo = False
@@ -487,11 +488,31 @@ class Home(ft.Column):
 #@ft.control
 class Settings(ft.Column):
 
-    # amr_config_data = None
+    global data
 
     def check_pass(self,e):
          self.txtpassword.password = not e.control.value
          self.txtpassword.update()
+
+    def save_pisos_config(self, e):
+        self.page._remove_dialog(self.banner)
+        p1 = self.alturap1.value
+        p2 = self.alturap2.value
+        self.pisosconfig.piso1.altura = int(p1) # type: ignore
+        self.pisosconfig.piso2.altura = int(p2) # type: ignore
+
+        pisos_conf = json.dumps({
+            "piso1": asdict(self.pisosconfig.piso1), # type: ignore
+            "piso2": asdict(self.pisosconfig.piso2) # type: ignore
+            }, ensure_ascii=False)
+        
+        res = data.save_pisos_config(pisos_conf)
+        if res:
+             self.banner.content = "Configuración guardada correctamente"
+             self.page.show_dialog(self.banner)
+        else:
+            self.banner.content = ft.Text(value="Sin cambios")
+            self.page.show_dialog(self.banner)
 
     def save_amr_config(self, e):
              
@@ -501,7 +522,7 @@ class Settings(ft.Column):
         ip = self.txtip.value
         puerto = int(self.txtpuerto.value)
         password = self.txtpassword.value
-        res = self.amr_config_data.save_amr_ip_puerto(alias,ip,puerto,password) # type: ignore
+        res = data.save_amr_ip_puerto(alias,ip,puerto,password) # type: ignore
         
         if res:
              self.banner.content = "Configuración guardada correctamente"
@@ -518,6 +539,9 @@ class Settings(ft.Column):
             super().__init__()
             #self.amr_config_data = data
             amrconfig = dict(enumerate(data.get_amr_config()))
+            self.pisosconfig = data.get_pisos_config()
+            self.alturap1 = ft.TextField(str(self.pisosconfig.piso1.altura), bgcolor=ft.Colors.WHITE) # type: ignore
+            self.alturap2 = ft.TextField(str(self.pisosconfig.piso2.altura), bgcolor=ft.Colors.WHITE) # type: ignore
             self.txtalias = ft.TextField(amrconfig[0].alias, bgcolor=ft.Colors.WHITE)
             self.txtip = ft.TextField(amrconfig[0].ip, bgcolor=ft.Colors.WHITE)
             self.txtpuerto = ft.TextField(amrconfig[0].puerto, bgcolor=ft.Colors.WHITE) # type: ignore
@@ -536,13 +560,72 @@ class Settings(ft.Column):
             )
 
             self.controls = [
-                 ft.Container(
+
+                ft.Container(
                     expand=True,
                     alignment=ft.Alignment(0, 0),
                     content=ft.Container(
                          content=ft.Column(
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
                             spacing=15,
+                            controls=[
+                                 ft.Text("PISOS_CONFIG", weight=ft.FontWeight.W_700)
+                            ]
+                         )
+                    )
+                 ),
+                 # Formulario configuración pisos
+                 ft.Container(
+                     expand=True,
+                     alignment=ft.Alignment(0,0),
+                     content=ft.Container(
+                         border=ft.Border.all(1, ft.Colors.PRIMARY),
+                         border_radius=10,
+                         padding=20,
+                         width=450,
+                         content=ft.Column(
+                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                             #spacing=15,
+                             controls=[
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                    controls=[
+                                        ft.Text("PISO 1", weight=ft.FontWeight.W_700),
+                                        self.alturap1
+                                    ]
+                                ),
+                                ft.Row(
+                                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                     controls=[
+                                        ft.Text("PISO 2", weight=ft.FontWeight.W_700),
+                                        self.alturap2
+                                    ]
+                                ),
+                                ft.Row(
+                                    alignment=ft.MainAxisAlignment.SPACE_AROUND,
+                                    controls=[
+                                        ft.Button(
+                                            icon=ft.Icons.SAVE,
+                                            content="Guardar",
+                                            style=ft.ButtonStyle(
+                                                shape=ft.RoundedRectangleBorder(radius=10)
+                                            ),
+                                            on_click=self.save_pisos_config
+                                        )
+                                    ]
+                                )
+
+                             ]
+                         )
+                     )
+                 ),
+                 ft.Container(
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
+                    content=ft.Container(
+                         content=ft.Column(
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
+                            #spacing=15,
                             controls=[
                                  ft.Text("AMR_CONFIG", weight=ft.FontWeight.W_700)
                             ]
@@ -630,8 +713,8 @@ async def main(page: ft.Page):
     page.theme = ft.Theme(color_scheme_seed=ft.Colors.SECONDARY)
     #await page.window.center()
     #page.window.full_screen=True
-    page.window.width = 1100
-    page.window.height = 500
+    #page.window.width = 1100
+    #page.window.height = 500
     page.update()
 
     # Vistas dsiponibles
@@ -663,7 +746,7 @@ async def main(page: ft.Page):
         ]
     )
 
-    page.add(ft.SafeArea(home))
+    page.add(ft.SafeArea(settings))
 
     
     

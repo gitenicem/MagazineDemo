@@ -72,7 +72,23 @@ class DataAccess:
                 raise Exception(f"Error al parsear estaciones detectadas: {e}")
 
 
+    @staticmethod
+    def get_pisos_config() -> PisosConfig:
+        # ESTO SI OBTIENE DATA DIRECTO DE LA BASE DE DATOS
+        estaciones = DataAccess.get_estaciones()
+        config = {}
+        for estacion in estaciones:
+            if estacion.alias == "WIP1":
+                config = estacion.pisos_configuracion
+        return config # pyright: ignore[reportReturnType]
 
+
+    @staticmethod
+    def save_pisos_config(configuracion: str) -> int:
+        with DataAccess.__candado: # type: ignore
+            query = "UPDATE estaciones SET pisos_configuracion = %s WHERE alias = 'WIP1'"
+            res = DataAccess.__conexion.execute_commit(query, (configuracion, )) # type: ignore
+            return res
 
     @staticmethod
     def get_amr_config() -> list[AmrConfig]:
