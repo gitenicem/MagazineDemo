@@ -15,18 +15,56 @@ if TYPE_CHECKING:
 
 data: DataController = None # type: ignore
 wip: Estacion = None # type: ignore
-flujo = [{'P1':'NONE'},{'P2':'NONE'}]
+
+class flujo():
+    __running = False
+    _origen = {'piso':'','estado':''}
+    _destino = {'piso':'','estado':''}
+    origen_creado = False
+    destino_creado = False
+
+    @classmethod
+    def set_origen(cls, piso:str, estado:str):
+        cls._origen['piso'] = piso
+        cls._origen['estado'] = estado
+        cls.origen_creado = True
+
+    @classmethod
+    def set_destino(cls, piso:str, estado:str):
+        cls._destino['piso'] = piso
+        cls._destino['estado'] = estado
+        cls.destino_creado = True
+        cls.__running = True
+
+    @classmethod
+    def running(cls) -> bool:
+        return cls.__running
+
+    @classmethod
+    def clear(cls):
+        cls._origen = {'piso':'','estado':''}
+        cls._destino = {'piso':'','estado':''}
+        cls.__running = False
+        
+
+    
 
 class Secuencia():
     paso: int=0
     piso: int=0
     origen: bool = True # Determina si es piso de origen
+    home = None  # referencia a la instancia de Home
     # global data
     # global wip
     # global flujo
+    
 
     @classmethod
-    def init(cls, origen: bool, piso:int):
+    def set_home(cls, home_instance):
+        cls.home = home_instance
+
+    @classmethod
+    def init(cls, origen: bool, piso:str):
         print("Iniciando proceso de netrega" if origen else "Iniciando proceso de recepcion")
         cls.origen = origen
         cls.piso = piso
@@ -40,24 +78,16 @@ class Secuencia():
     def finish(cls):
         # pos 0 = origen
         # pos 1 = destino
-        global flujo
+        # global flujo
                 
         if cls.origen: # Es el origen
-            flujo[0] = {f'P{cls.piso}':'IDDLE'} # type: ignore
+            flujo._origen['piso'] = "IDDLE"
         
         # FINALIZACION DEL FLUJO EN LOS DOS PISOS CUANDO EL DESTINO TERMINA DE RECIBIR
         else: # Es el destino
 
-            # Reinicio del piso destino
-            # flujo[1] = {f'P{cls.piso}':'NONE'}
-        
-            # # Reinicio del piso origen
-            # match cls.piso:
-            #     case 1:
-            #         flujo[0] = {'P2':'NONE'}
-            #     case 2:
-            #         flujo[0] = {'P1':'NONE'}
-            flujo = [{'P1':'NONE'},{'P2':'NONE'}]
+            # Reinicio del flujo
+            flujo.clear()
 
         cls.paso = 0
 
@@ -69,7 +99,7 @@ class Secuencia():
     def loop(cls):
         global wip
 
-        print(wip.amr_estado.get(f"P{cls.piso}"))
+        print(wip.amr_estado.get(f"{cls.piso}"))
 
         match cls.paso:
 
@@ -77,23 +107,23 @@ class Secuencia():
 
             case 1:
                 if cls.origen:
-                    print(f"[ORIGEN P{cls.piso}] Esperando amr_estado RECIBIENDO")
-                    if wip.amr_estado.get(f"P{cls.piso}") == EstadosAmr.RECIBIENDO.value:
+                    print(f"[ORIGEN {cls.piso}] Esperando amr_estado RECIBIENDO")
+                    if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.RECIBIENDO.value:
                         cls.next()
                 else:
-                    print(f"[DESTINO P{cls.piso}] Esperando amr_estado PREPARADO")
-                    if wip.amr_estado.get(f"P{cls.piso}") == EstadosAmr.PREPARADO.value:
+                    print(f"[DESTINO {cls.piso}] Esperando amr_estado PREPARADO")
+                    if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.PREPARADO.value:
                         cls.next()
 
             case 2:
                 print(f"amr_estado = {wip.amr_estado.get(f"P{cls.piso}")}")
                 if cls.origen:
-                    print(f"[ORIGEN P{cls.piso}] Esperando amr_estado NONE")
-                    if wip.amr_estado.get(f"P{cls.piso}") == None:
+                    print(f"[ORIGEN {cls.piso}] Esperando amr_estado NONE")
+                    if wip.amr_estado.get(f"{cls.piso}") == None:
                         cls.next()
                 else:
-                    print(f"[DESTINO P{cls.piso}] Esperando amr_estado NONE")
-                    if wip.amr_estado.get(f"P{cls.piso}") == None:
+                    print(f"[DESTINO {cls.piso}] Esperando amr_estado NONE")
+                    if wip.amr_estado.get(f"{cls.piso}") == None:
                         cls.next()
 
 
@@ -152,6 +182,9 @@ class Secuencia():
             #         cls.next()
             case _:
                 print("Finish")
+                if cls.home:
+                    cls.home.conveyor.visible = False
+                    cls.home.conveyor.update() 
                 cls.finish()
 
 
@@ -160,13 +193,8 @@ class Secuencia():
 class Home(ft.Column):
     #db_data = None
     automatico_activo = False
-
     conveyor = None
 
-    
-
-
-    
 
     def __init__(self):
         super().__init__()
@@ -351,6 +379,7 @@ class Home(ft.Column):
 
 
     def did_mount(self):
+        Secuencia.set_home(self)
         self.page.run_task(self.pooling)
         self.page.run_task(self.update)
 
@@ -359,11 +388,11 @@ class Home(ft.Column):
 
     
     def amr_ejecutar_entrega(self, piso:int, origen:bool):
-        print(f"P{piso} ENTREGAR")
+        print(f"{piso} ENTREGAR")
         Secuencia.init(origen, piso=piso)
 
     def amr_ejecutar_recepcion(self, piso:int, origen:bool):
-        print(f"P{piso} RECIBIR")
+        print(f"{piso} RECIBIR")
         Secuencia.init(origen, piso=piso)
         
 
@@ -378,49 +407,94 @@ class Home(ft.Column):
                     wip = data.get_estacion("WIP1") # type: ignore
                     estadoP1, estadoP2 = wip.pisos_estado.pisos.values() # type: ignore
 
-                    print(flujo)
+                    # print(flujo)
 
-                    if not Secuencia.running():
-                        if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE
-                            if not Secuencia.running():
-                                if flujo[0].get('P1') == "NONE":
-                                    flujo[0] = {'P1':'RUNNING'}
-                                    data.set_servidor_acciones_entregar(piso=1, estacion=wip) # type: ignore
-                                    self.amr_ejecutar_recepcion(piso=1, origen=True) # type: ignore
-                                    #return
+                    # CREACION DEL FLUJO
+                    # Si los dos solo pueden recibir no se crea flujo
+                    if not (estadoP1 == EstadosPiso.PREPARADO_RECIBIR and estadoP2 == EstadosPiso.PREPARADO_RECIBIR):
 
-                        if estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value: # ESTA VACIO
-                            if not Secuencia.running():
-                                if flujo[1].get('P1') == "NONE" and flujo[0].get('P2') == "IDDLE":
-                                    flujo[1] = {'P1':'RUNNING'}
-                                    data.set_servidor_acciones_recibir(piso=1, estacion = wip) # type: ignore
-                                    self.amr_ejecutar_entrega(piso=1, origen=False) # type: ignore
-                                    #return
+                        if not Secuencia.running() and not flujo.running():
+                            if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE (POSIBLE ORIGEN)
+                                if not flujo.origen_creado:
+                                    flujo.set_origen('P1','NONE')
 
-                        if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE
-                            if not Secuencia.running():
-                                if flujo[0].get('P2') == "NONE":
-                                    flujo[0] = {'P2':'RUNNING'}
-                                    data.set_servidor_acciones_entregar(piso=2, estacion=wip) # type: ignore
-                                    self.amr_ejecutar_recepcion(piso=2, origen=True) # type: ignore
-                                    #return
-                                if flujo[1].get('P2') == "NONE":
-                                    flujo[1] = {'P2':'RUNNING'}
-                                    data.set_servidor_acciones_entregar(piso=2, estacion=wip) # type: ignore
-                                    self.amr_ejecutar_recepcion(piso=2, origen=True) # type: ignore
+                        if not Secuencia.running() and not flujo.running():
+                            if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE (POSIBLE ORIGEN)
+                                if not flujo.origen_creado:
+                                    flujo.set_origen('P2','NONE')
 
 
-                        if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value: # ESTA VACIO
-                            if not Secuencia.running():
-                                if flujo[1].get('P2') == "NONE" and flujo[0].get('P1') == "IDDLE":
-                                    flujo[1] = {'P2':'RUNNING'}
-                                    data.set_servidor_acciones_recibir(piso=2, estacion=wip) # type: ignore
-                                    self.amr_ejecutar_entrega(piso=2, origen=False) # type: ignore
-                                    #return
+
+                        if not Secuencia.running() and not flujo.running():
+                            if estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value: # TIENE UN MAGAZINE (POSIBLE DESTINO)
+                                if not flujo.destino_creado:
+                                    flujo.set_destino('P1','NONE')
+                        
+                        if not Secuencia.running() and not flujo.running():
+                            if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value: # TIENE UN MAGAZINE (POSIBLE DESTINO)
+                                if not flujo.destino_creado:
+                                    flujo.set_destino('P2','NONE')
+
+
+                    # INICIO DEL FLUJO
+                    if flujo.running():
+
+                        if flujo._origen.get('estado') == "NONE":
+                            flujo._origen['estado'] = "RUNNING"
+                            if data:
+                                data.set_servidor_acciones_entregar(piso = flujo._origen.get('piso'), estacion = wip)
+                                self.amr_ejecutar_entrega(piso = flujo._origen.get('piso'), origen = True)
+
+                        if flujo._destino.get('estado') == "NONE" and flujo._destino.get('estado' == "IDDLE"):
+                            flujo._destino['estado'] = "RUNNING"
+                            if data:
+                                data.set_servidor_acciones_recibir(piso = flujo._destino.get('piso'), estacion = wip)
+                                self.amr_ejecutar_entrega(flujo._destino.get('piso'), origen = False )
+
+
+
+
+
+
+                    # if not Secuencia.running():
+                    #     if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE
+                    #         if not Secuencia.running():
+                    #             if flujo[0].get('P1') == "NONE":
+                    #                 flujo[0] = {'P1':'RUNNING'}
+                    #                 data.set_servidor_acciones_entregar(piso=1, estacion=wip) # type: ignore
+                    #                 self.amr_ejecutar_recepcion(piso=1, origen=True) # type: ignore
+
+                    #     if estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value: # ESTA VACIO
+                    #         if not Secuencia.running():
+                    #             if flujo[1].get('P1') == "NONE" and flujo[0].get('P2') == "IDDLE":
+                    #                 flujo[1] = {'P1':'RUNNING'}
+                    #                 data.set_servidor_acciones_recibir(piso=1, estacion = wip) # type: ignore
+                    #                 self.amr_ejecutar_entrega(piso=1, origen=False) # type: ignore
+
+                    #     if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE
+                    #         if not Secuencia.running():
+                    #             if flujo[0].get('P2') == "NONE":
+                    #                 flujo[0] = {'P2':'RUNNING'}
+                    #                 data.set_servidor_acciones_entregar(piso=2, estacion=wip) # type: ignore
+                    #                 self.amr_ejecutar_recepcion(piso=2, origen=True) # type: ignore
+                                    
+                    #             if flujo[1].get('P2') == "NONE":
+                    #                 flujo[1] = {'P2':'RUNNING'}
+                    #                 data.set_servidor_acciones_entregar(piso=2, estacion=wip) # type: ignore
+                    #                 self.amr_ejecutar_recepcion(piso=2, origen=True) # type: ignore
+
+
+                    #     if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value: # ESTA VACIO
+                    #         if not Secuencia.running():
+                    #             if flujo[1].get('P2') == "NONE" and flujo[0].get('P1') == "IDDLE":
+                    #                 flujo[1] = {'P2':'RUNNING'}
+                    #                 data.set_servidor_acciones_recibir(piso=2, estacion=wip) # type: ignore
+                    #                 self.amr_ejecutar_entrega(piso=2, origen=False) # type: ignore
+                                    
 
 
                 except Exception as e:
-                    print(f"Error en la consulta de BD: {e}")
+                    print(f"Error: {e.__traceback__}")
 
             await asyncio.sleep(5)
 

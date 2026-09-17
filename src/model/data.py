@@ -128,8 +128,8 @@ class DataAccess:
                 return bool(res)
 
     @staticmethod
-    def set_servidor_acciones_entregar(piso: int, estacion: Estacion) -> bool:
-        estacion.servidor_acciones[f"P{piso}"] = "ENTREGAR"
+    def set_servidor_acciones_entregar(piso: str, estacion: Estacion) -> bool:
+        estacion.servidor_acciones[f"{piso}"] = "ENTREGAR"
 
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET servidor_acciones = %s WHERE alias = 'WIP1' "
@@ -139,8 +139,8 @@ class DataAccess:
 
 
     @staticmethod
-    def set_servidor_acciones_recibir(piso: int, estacion: Estacion) -> bool:
-        estacion.servidor_acciones[f"P{piso}"] = "RECIBIR"
+    def set_servidor_acciones_recibir(piso: str, estacion: Estacion) -> bool:
+        estacion.servidor_acciones[f"{piso}"] = "RECIBIR"
 
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET servidor_acciones = %s WHERE alias = 'WIP1' "
@@ -149,8 +149,8 @@ class DataAccess:
             return bool(res)
 
     @staticmethod
-    def limpiar_servidor_acciones(piso:int, estacion:Estacion):
-        estacion.servidor_acciones[f"P{piso}"] = ""
+    def limpiar_servidor_acciones(piso:str, estacion:Estacion):
+        estacion.servidor_acciones[f"{piso}"] = ""
 
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET servidor_acciones = %s WHERE alias = 'WIP1' "
@@ -162,7 +162,7 @@ class DataAccess:
     @staticmethod
     def enviar_orden_amr_entrega(piso:int):
         value = {'P1':'','P2':''}
-        value[f"P{piso}"] = "ENTREGAR"
+        value[f"{piso}"] = "ENTREGAR"
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET smema = %s WHERE alias = 'WIP1' "
             params = (json.dumps(value),)
@@ -172,7 +172,7 @@ class DataAccess:
     @staticmethod
     def enviar_orden_amr_recibe(piso:int):
         value = {'P1':'','P2':''}
-        value[f"P{piso}"] = "RECIBIR"
+        value[f"{piso}"] = "RECIBIR"
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET smema = %s WHERE alias = 'WIP1' "
             params = (json.dumps(value),)

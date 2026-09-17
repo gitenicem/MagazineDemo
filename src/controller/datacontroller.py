@@ -25,13 +25,13 @@ class DataController:
     def save_amr_ip_puerto(self, alias:str, ip:str, puerto:int, password:str):
         return self._data.save_amr_ip_puerto(alias, ip, puerto, password)
 
-    def set_servidor_acciones_entregar(self, piso:int, estacion: Estacion):
+    def set_servidor_acciones_entregar(self, piso:str, estacion: Estacion):
         return self._data.set_servidor_acciones_entregar(piso=piso, estacion=estacion)
 
-    def set_servidor_acciones_recibir(self, piso:int, estacion: Estacion):
+    def set_servidor_acciones_recibir(self, piso:str, estacion: Estacion):
         return self._data.set_servidor_acciones_recibir(piso=piso, estacion=estacion)
 
-    def limpiar_servidor_acciones(self, piso:int, estacion:Estacion):
+    def limpiar_servidor_acciones(self, piso:str, estacion:Estacion):
         return self._data.limpiar_servidor_acciones(piso=piso, estacion=estacion)
 
     def enviar_orden_amr_entrega(self, piso:int):
