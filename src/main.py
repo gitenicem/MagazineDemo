@@ -76,7 +76,7 @@ class Secuencia():
 
     @classmethod
     def finish(cls):
-                
+        print("Finish")
         if cls.origen: # Es el origen
             flujo._origen['estado'] = "IDDLE"
         
@@ -99,89 +99,74 @@ class Secuencia():
 
         # print(wip.amr_estado.get(f"{cls.piso}"))
 
+        # SECUENCIA DE ENTREGA*********************
+        # SERVIDOR -> servidor_acciones = ENTREGAR
+        # 1.- AMR --> RECIBIENDO
+        # 2.- SERVIDOR -> servidor_acciones = "" ( ESTACION INICIA PROCESO DE ENTREGA)
+        # 3.- AMR -> PISO ORIGEN = FINALIZADO
+        # 4.- AMR -> PISO ORIGEN = SIGUIENTE
+        # 5.- AMR -> PISO ORIGEN = ""
+
+        # SECUENCIA DE RECEPCION******************
+        # SERVIDOR -> servidor_acciones = RECIBIR
+        # 1.- AMR -> PISO DESTINO = PREPARADO
+        # 2.- SERVER -> servidor acciones = "" (ESTACION INICIA PROCESO DE RECEPCION)
+        # 3.- AMR -> PISO DESTINO = FINALIZADO
+        # 4.- AMR -> PISO DESTINO = ""
+
         match cls.paso:
-
-            
-
             case 1:
                 if cls.origen:
-                    print(f"[ORIGEN {cls.piso}] Esperando amr_estado RECIBIENDO")
+                    #print(f"[ORIGEN {cls.piso}] Esperando amr_estado RECIBIENDO")
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.RECIBIENDO.value:
+                        data.limpiar_servidor_acciones(cls.piso, wip)
                         data.limpiar_orden_amr()
                         cls.next()
                 else:
-                    print(f"[DESTINO {cls.piso}] Esperando amr_estado PREPARADO")
+                    #print(f"[DESTINO {cls.piso}] Esperando amr_estado PREPARADO")
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.PREPARADO.value:
+                        data.limpiar_servidor_acciones(cls.piso, wip)
                         data.limpiar_orden_amr()
                         cls.next()
-
             case 2:
-                print(f"amr_estado = {wip.amr_estado.get(f"P{cls.piso}")}")
+                #print(f"servidor_acciones = {wip.servidor_acciones.get(f"P{cls.piso}")}")
                 if cls.origen:
-                    print(f"[ORIGEN {cls.piso}] Esperando amr_estado NONE")
-                    if wip.amr_estado.get(f"{cls.piso}") == None:
+                    print(f"[ORIGEN {cls.piso}] Esperando servidor_acciones NONE")
+                    if wip.servidor_acciones.get(f"{cls.piso}") == None:
+                        cls.next()
+                else:
+                    print(f"[DESTINO {cls.piso}] Esperando servidor_acciones NONE")
+                    if wip.servidor_acciones.get(f"{cls.piso}") == None:
+                        cls.next()
+            case 3:
+                #print(f"amr_estado = {wip.servidor_acciones.get(f"P{cls.piso}")}")
+                if cls.origen:
+                    print(f"[ORIGEN {cls.piso}] Esperando amr_estado FINALIZADO")
+                    if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.FINALIZADO.value:
+                        cls.next()
+                else:
+                    print(f"[DESTINO {cls.piso}] Esperando amr_estado FINALIZADO")
+                    if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.FINALIZADO.value:
+                        cls.next()
+            case 4:
+                #print(f"amr_estado = {wip.servidor_acciones.get(f"P{cls.piso}")}")
+                if cls.origen:
+                    print(f"[ORIGEN {cls.piso}] Esperando amr_estado SIGUIENTE")
+                    if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.SIGUIENTE.value:
                         cls.next()
                 else:
                     print(f"[DESTINO {cls.piso}] Esperando amr_estado NONE")
                     if wip.amr_estado.get(f"{cls.piso}") == None:
                         cls.next()
-
-
-            # case 1:
-            #     if cls.origen:
-            #         print(f"[ORIGEN P{cls.piso}] Esperando estado ENTREGAR")
-            #         if cls.piso == 1:
-            #             #smema = json.
-            #             print(wip.smema)
-            #             if wip.smema[f'P[{cls.piso}]'] == EstadosPiso.ENTREGAR.value: # type: ignore
-            #                 print(f"[ORIGEN P{cls.piso}] Enviando orden de recepcion al amr")
-            #                 if data.enviar_orden_amr_recibe(piso=cls.piso):
-            #                     cls.next()
-            #         elif cls.piso == 2:
-            #             if wip.pisos_estado.p2 == EstadosPiso.ENTREGAR.value:
-            #                 print(f"[ORIGEN] P{cls.piso} Enviando orden de entrega al amr")
-            #                 if data.enviar_orden_amr_recibe(piso=cls.piso):
-            #                     cls.next()
-            #     else:
-            #         print(f"[DESTINO P{cls.piso}] Paso 1")
-            #         cls.next()
-
-            #         cls.next()
-            # case 2:
-            #     if cls.origen:
-            #         print(f"[ORIGEN P{cls.piso}] Paso 2 Esperando amr RECIBIENDO")
-            #         if wip.amr_estado.get(f"P{cls.piso}") == EstadosAmr.RECIBIENDO.value:
-            #             if data.limpiar_servidor_acciones(piso=cls.piso,estacion=wip):
-            #                 cls.next()
-            #     else:
-            #         print(f"[DESTINO] P{cls.piso} Paso 2")
-            #         cls.next()
-            # case 3:
-            #     if cls.origen:
-            #         print(f"[ORIGEN] P{cls.piso} Paso 3 Esperando amr FINALIZADO")
-            #         if wip.amr_estado.get(f"P{cls.piso}") == EstadosAmr.FINALIZADO.value:
-            #             cls.next()
-            #     else:
-            #         print(f"[DESTINO] P{cls.piso} Paso 3")
-            #         cls.next()
-            # case 4:
-            #     if cls.origen:
-            #         print(f"[ORIGEN] P{cls.piso} Paso 4 Esperando amr SIGUIENTE")
-            #         if wip.amr_estado.get(f"P{cls.piso}") == EstadosAmr.FINALIZADO.value:
-            #             cls.next()
-            #     else:
-            #         print(f"[DESTINO] P{cls.piso} Paso 4")
-            #         cls.next()
-            # case 5:
-            #     if cls.origen:
-            #         print(f"[ORIGEN] P{cls.piso} Paso 4 Esperando amr VACIO")
-            #         if wip.amr_estado.get(f"P{cls.piso}") == EstadosAmr.NONE.value:
-            #             cls.next()
-            #     else:
-            #         print(f"[DESTINO] P{cls.piso} Paso 5")
-            #         cls.next()
+            case 5:
+                #print(f"amr_estado = {wip.amr_estado.get(f"P{cls.piso}")}")
+                if cls.origen:
+                    print(f"[ORIGEN {cls.piso}] Esperando amr_estado NONE")
+                    if wip.amr_estado.get(f"{cls.piso}") == None:
+                        cls.next()
+                else:
+                    cls.next()
             case _:
-                print("Finish")
                 if cls.home:
                     cls.home.conveyor.visible = False
                     cls.home.conveyor.update() 
@@ -407,7 +392,7 @@ class Home(ft.Column):
                     wip = data.get_estacion("WIP1") # type: ignore
                     estadoP1, estadoP2 = wip.pisos_estado.pisos.values() # type: ignore
 
-                    # print(flujo)
+                    #print(f"EstadoP1:{estadoP1} EstadoP2:{estadoP2}")
 
                     # CREACION DEL FLUJO
                     # Si los dos solo pueden recibir no se crea flujo
@@ -439,7 +424,7 @@ class Home(ft.Column):
                     # INICIO DEL FLUJO
                     if flujo.running():
 
-                        print(f"Origen: {flujo._origen.get('estado')} Destino: {flujo._destino.get('estado')}")
+                        #print(f"Origen: {flujo._origen.get('estado')} Destino: {flujo._destino.get('estado')}")
 
                         if flujo._origen.get('estado') == "NONE":
                             flujo._origen['estado'] = "RUNNING"
@@ -458,14 +443,13 @@ class Home(ft.Column):
 
 
                 except Exception as e:
-                    print(f"Error: {e.__traceback__}")
+                    print(f"Error: {e}")
 
             # Si automático esta detenido y un flujo ya exitia se detiene
             else:
-                if flujo.running():
-                    flujo.clear()
+                flujo.clear()
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(1)
 
 
 
@@ -478,7 +462,7 @@ class Home(ft.Column):
                 wip = data.get_estacion("WIP1") # type: ignore
                 # print(wip.amr_estado)
                 Secuencia.loop()
-                await asyncio.sleep(1)
+                
             await asyncio.sleep(1)
 
             
@@ -746,7 +730,7 @@ async def main(page: ft.Page):
         ]
     )
 
-    page.add(ft.SafeArea(settings))
+    page.add(ft.SafeArea(home))
 
     
     

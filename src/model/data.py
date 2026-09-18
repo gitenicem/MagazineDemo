@@ -170,7 +170,8 @@ class DataAccess:
 
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET servidor_acciones = %s WHERE alias = 'WIP1' "
-            params = (json.dumps(estacion.servidor_acciones),)
+            #params = (json.dumps(estacion.servidor_acciones),)
+            params = ("",)
             res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
             return bool(res)
 
@@ -178,7 +179,7 @@ class DataAccess:
     @staticmethod
     def enviar_orden_amr_entrega(piso:str):
         value = {'P1':'','P2':''}
-        value[f"{piso}"] = "ENTREGAR"
+        value[f"{piso}"] = "RECIBIR"
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET smema = %s WHERE alias = 'WIP1' "
             params = (json.dumps(value),)
@@ -189,7 +190,7 @@ class DataAccess:
     @staticmethod
     def enviar_orden_amr_recibe(piso:str):
         value = {'P1':'','P2':''}
-        value[f"{piso}"] = "RECIBIR"
+        value[f"{piso}"] = "ENTREGAR"
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET smema = %s WHERE alias = 'WIP1' "
             params = (json.dumps(value),)
