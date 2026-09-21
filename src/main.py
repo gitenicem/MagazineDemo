@@ -113,33 +113,29 @@ class Secuencia():
         # 2.- SERVER -> servidor acciones = "" (ESTACION INICIA PROCESO DE RECEPCION)
         # 3.- AMR -> PISO DESTINO = FINALIZADO
         # 4.- AMR -> PISO DESTINO = ""
+        
 
         match cls.paso:
             case 1:
                 if cls.origen:
-                    #print(f"[ORIGEN {cls.piso}] Esperando amr_estado RECIBIENDO")
+                    print(f"[ORIGEN {cls.piso}] Esperando amr_estado RECIBIENDO")
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.RECIBIENDO.value:
-                        data.limpiar_servidor_acciones(cls.piso, wip)
-                        data.limpiar_orden_amr()
                         cls.next()
                 else:
-                    #print(f"[DESTINO {cls.piso}] Esperando amr_estado PREPARADO")
+                    print(f"[DESTINO {cls.piso}] Esperando amr_estado PREPARADO")
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.PREPARADO.value:
-                        data.limpiar_servidor_acciones(cls.piso, wip)
-                        data.limpiar_orden_amr()
                         cls.next()
             case 2:
-                #print(f"servidor_acciones = {wip.servidor_acciones.get(f"P{cls.piso}")}")
-                if cls.origen:
-                    print(f"[ORIGEN {cls.piso}] Esperando servidor_acciones NONE")
-                    if wip.servidor_acciones.get(f"{cls.piso}") == None:
-                        cls.next()
-                else:
-                    print(f"[DESTINO {cls.piso}] Esperando servidor_acciones NONE")
-                    if wip.servidor_acciones.get(f"{cls.piso}") == None:
-                        cls.next()
+                cls.next()
+                # if cls.origen:
+                #     print(f"[ORIGEN {cls.piso}] Esperando servidor_acciones NONE")
+                #     if wip.servidor_acciones.get(f"{cls.piso}") == None:
+                #         cls.next()
+                # else:
+                #     print(f"[DESTINO {cls.piso}] Esperando servidor_acciones NONE")
+                #     if wip.servidor_acciones.get(f"{cls.piso}") == None:
+                #         cls.next()
             case 3:
-                #print(f"amr_estado = {wip.servidor_acciones.get(f"P{cls.piso}")}")
                 if cls.origen:
                     print(f"[ORIGEN {cls.piso}] Esperando amr_estado FINALIZADO")
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.FINALIZADO.value:
@@ -149,23 +145,37 @@ class Secuencia():
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.FINALIZADO.value:
                         cls.next()
             case 4:
-                #print(f"amr_estado = {wip.servidor_acciones.get(f"P{cls.piso}")}")
                 if cls.origen:
                     print(f"[ORIGEN {cls.piso}] Esperando amr_estado SIGUIENTE")
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.SIGUIENTE.value:
                         cls.next()
                 else:
                     print(f"[DESTINO {cls.piso}] Esperando amr_estado NONE")
-                    if wip.amr_estado.get(f"{cls.piso}") == None:
+                    if not wip.amr_estado.get(f"{cls.piso}"):
                         cls.next()
             case 5:
-                #print(f"amr_estado = {wip.amr_estado.get(f"P{cls.piso}")}")
+                if cls.origen:
+                    print(f"[ORIGEN {cls.piso}] Esperando servidor_acciones NONE")
+                    data.limpiar_servidor_acciones(cls.piso, wip)
+                    print(wip.servidor_acciones.get(f"{cls.piso}"))
+                    if not wip.servidor_acciones.get(f"{cls.piso}"):
+                        cls.next()
+                else:
+                    print(f"[DESTINO {cls.piso}] Esperando servidor_acciones NONE")
+                    data.limpiar_servidor_acciones(cls.piso, wip)
+                    if not wip.servidor_acciones.get(f"{cls.piso}"):
+                        cls.next()
+            case 6:
                 if cls.origen:
                     print(f"[ORIGEN {cls.piso}] Esperando amr_estado NONE")
+                    data.limpiar_orden_amr()
                     if wip.amr_estado.get(f"{cls.piso}") == None:
                         cls.next()
                 else:
-                    cls.next()
+                    print(f"[DESTINO {cls.piso}] Esperando amr_estado NONE")
+                    data.limpiar_orden_amr()
+                    if wip.amr_estado.get(f"{cls.piso}") == None:
+                        cls.next()
             case _:
                 if cls.home:
                     cls.home.conveyor.visible = False
@@ -304,6 +314,7 @@ class Home(ft.Column):
             
         ]
 
+
     def entregar_clicked(self, e):
         global wip
         global data
@@ -320,9 +331,6 @@ class Home(ft.Column):
             if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value:
                 data.set_servidor_acciones_entregar(piso="P1", estacion=wip) # type: ignore
                 Secuencia.init(origen=True, piso="P1")
-                assert self.conveyor is not None
-                self.conveyor.src = "conveyorout.gif"
-                self.conveyor.visible = True
             else:
                 self.dialog.content=ft.Text(f"P{piso} No está preparado para entregar")
                 self.page.show_dialog(self.dialog)
@@ -331,9 +339,6 @@ class Home(ft.Column):
             if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value:
                 data.set_servidor_acciones_entregar(piso="P2", estacion=wip) # type: ignore
                 Secuencia.init(origen=True, piso="P2")
-                assert self.conveyor is not None
-                self.conveyor.src = "conveyorout.gif"
-                self.conveyor.visible = True
             else:
                 self.dialog.content=ft.Text(f"P{piso} No está preparado para entregar")
                 self.page.show_dialog(self.dialog)
@@ -350,16 +355,16 @@ class Home(ft.Column):
             piso = 0
             self.page.show_dialog(self.dialog)
 
-        wip = data.get_estacion("WIP1") # type: ignore
+        #wip = data.get_estacion("WIP1") # type: ignore
         estadoP1, estadoP2 = wip.pisos_estado.pisos.values() # type: ignore
 
         if piso == 1:
             if estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value:
                 data.set_servidor_acciones_recibir(piso="P1", estacion=wip) # type: ignore
                 Secuencia.init(origen=False, piso="P1")
-                assert self.conveyor is not None
-                self.conveyor.src = "conveyorin.gif"
-                self.conveyor.visible = True
+                #assert self.conveyor is not None
+                #self.conveyor.src = "conveyorin.gif"
+                #self.conveyor.visible = True
             else:
                 self.dialog.content=ft.Text(f"P{piso} No está preparado para recibir")
                 self.page.show_dialog(self.dialog)
@@ -368,9 +373,9 @@ class Home(ft.Column):
             if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value:
                 data.set_servidor_acciones_recibir(piso="P2", estacion=wip) # type: ignore
                 Secuencia.init(origen=False, piso="P2")
-                assert self.conveyor is not None
-                self.conveyor.src = "conveyorin.gif"
-                self.conveyor.visible = True
+                #assert self.conveyor is not None
+                #self.conveyor.src = "conveyorin.gif"
+                #self.conveyor.visible = True
             else:
                 self.dialog.content=ft.Text(f"P{piso} No está preparado para recibir")
                 self.page.show_dialog(self.dialog)
@@ -392,10 +397,41 @@ class Home(ft.Column):
         #print(self.automatico_activo)
 
 
+    async def update_animation(self):
+        global wip
+        while wip is None:
+            await asyncio.sleep(0.1)
+        
+        assert self.conveyor is not None
+
+        while True:
+            estadoP1, estadoP2 = wip.pisos_estado.pisos.values()
+            if estadoP1 == EstadosPiso.ENTREGAR.value:
+                self.conveyor.src = "conveyorout.gif"
+                self.conveyor.visible = True
+            elif estadoP1 == EstadosPiso.RECIBIENDO.value:
+                self.conveyor.src = "conveyorin.gif"
+                self.conveyor.visible = True
+            elif estadoP2 == EstadosPiso.ENTREGAR.value:
+                self.conveyor.src = "conveyorout.gif"
+                self.conveyor.visible = True
+            elif estadoP2 == EstadosPiso.RECIBIENDO.value:
+                self.conveyor.src = "conveyorin.gif"
+                self.conveyor.visible = True
+            else:
+                self.conveyor.src = "conveyoroff.png"
+                self.conveyor.visible = True
+
+            self.page.update()
+            await asyncio.sleep(1)
+        
+
+
     def did_mount(self):
         Secuencia.set_home(self)
         self.page.run_task(self.pooling) # Orquestador de flujos
         self.page.run_task(self.update)  # Mantiene fresca la data durante la ejecución de un flujo
+        self.page.run_task(self.update_animation)
 
     #def will_unmount(self):
     #    self.automatico_activo = False
@@ -458,16 +494,18 @@ class Home(ft.Column):
                         if flujo._origen.get('estado') == "NONE":
                             flujo._origen['estado'] = "RUNNING"
                             if data:
-                                data.set_servidor_acciones_entregar(piso = str(flujo._origen.get('piso')), estacion = wip)
-                                data.enviar_orden_amr_recibe(piso=str(flujo._origen.get('piso')))
-                                self.amr_ejecutar_entrega(piso = str(flujo._origen.get('piso')), origen = True)
+                                if not estadoP1 == EstadosPiso.ENTREGAR.value:
+                                    data.set_servidor_acciones_entregar(piso = str(flujo._origen.get('piso')), estacion = wip)
+                                    data.enviar_orden_amr_recibe(piso=str(flujo._origen.get('piso')))
+                                    self.amr_ejecutar_entrega(piso = str(flujo._origen.get('piso')), origen = True)
 
                         if flujo._destino.get('estado') == "NONE" and flujo._origen.get('estado') == "IDDLE":
                             flujo._destino['estado'] = "RUNNING"
                             if data:
-                                data.set_servidor_acciones_recibir(piso = str(flujo._destino.get('piso')), estacion = wip)
-                                data.enviar_orden_amr_entrega(piso=str(flujo._destino.get('piso')))
-                                self.amr_ejecutar_entrega(str(flujo._destino.get('piso')), origen = False )
+                                    if not estadoP2 == EstadosPiso.RECIBIR.value:
+                                        data.set_servidor_acciones_recibir(piso = str(flujo._destino.get('piso')), estacion = wip)
+                                        data.enviar_orden_amr_entrega(piso=str(flujo._destino.get('piso')))
+                                        self.amr_ejecutar_entrega(str(flujo._destino.get('piso')), origen = False )
                                     
 
 
@@ -487,8 +525,9 @@ class Home(ft.Column):
         global wip
         global data
         while True:
+            wip = data.get_estacion("WIP1") # type: ignore
             if Secuencia.running():
-                wip = data.get_estacion("WIP1") # type: ignore
+                
                 # print(wip.amr_estado)
                 Secuencia.loop()
                 
@@ -713,12 +752,17 @@ class ventana():
     page: ft.Page
     home = Home()
     settings = Settings()
+    
 
     def __init__(self, page: ft.Page):
         self.page = page
         self.window_settings()
-        self.center()
+        self.page.run_task(self.center)   # lanza la coroutine sin bloquear __init__
         self.build()
+
+    async def center(self):
+        await self.page.window.center()
+        self.page.update()
 
     def window_settings(self):
         self.page.title = 'Demo'
@@ -730,18 +774,10 @@ class ventana():
         self.page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
         self.page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
-    def center(self):
-        page_width = self.page.width or 0
-        page_height = self.page.height or 0
-        window_width = self.page.window.width or 0
-        window_height = self.page.window.height or 0
-
-        self.page.window.left = (page_width // 2) - (window_width // 2)
-        self.page.window.top = (page_height // 2) - (window_height // 2)
-
     def on_navigation_change(self,e):
         selected_index = e.control.selected_index
         if selected_index == 0:
+
             self.show_home()
         elif selected_index == 1:
             self.show_settings()

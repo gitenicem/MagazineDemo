@@ -145,22 +145,24 @@ class DataAccess:
 
     @staticmethod
     def set_servidor_acciones_entregar(piso: str, estacion: Estacion) -> bool:
-        estacion.servidor_acciones[f"{piso}"] = "ENTREGAR"
+        #estacion.servidor_acciones[f"{piso}"] = "ENTREGAR"
+        value = {piso:'ENTREGAR'}
 
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET servidor_acciones = %s WHERE alias = 'WIP1' "
-            params = (json.dumps(estacion.servidor_acciones),)
+            params = (json.dumps(value),)
             res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
             return bool(res)
 
 
     @staticmethod
     def set_servidor_acciones_recibir(piso: str, estacion: Estacion) -> bool:
-        estacion.servidor_acciones[f"{piso}"] = "RECIBIR"
+        #estacion.servidor_acciones[f"{piso}"] = "RECIBIR"
+        value = {piso:'RECIBIR'}
 
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET servidor_acciones = %s WHERE alias = 'WIP1' "
-            params = (json.dumps(estacion.servidor_acciones),)
+            params = (json.dumps(value),)
             res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
             return bool(res)
 
