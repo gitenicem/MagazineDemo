@@ -550,7 +550,7 @@ class Settings(ft.Column):
         super().__init__()
         self.scroll=ft.ScrollMode.AUTO
         self.expand=True
-        self.alignment = ft.CrossAxisAlignment.CENTER
+        self.horizontal_alignment = ft.CrossAxisAlignment.CENTER # type: ignore
         amrconfig = dict(enumerate(data.get_amr_config()))
         self.pisosconfig = data.get_pisos_config()
         self.alturap1 = ft.TextField(str(self.pisosconfig.piso1.altura), bgcolor=ft.Colors.WHITE) # type: ignore
@@ -714,7 +714,7 @@ class ventana():
     home = Home()
     settings = Settings()
 
-    def __init__(self, page: ft.page):
+    def __init__(self, page: ft.Page):
         self.page = page
         self.window_settings()
         self.center()
@@ -725,14 +725,19 @@ class ventana():
         self.page.window.width = 1100
         self.page.window.height = 500
         self.page.window.resizable = True
-        self.page.theme_mode = 'light'
+        self.page.theme_mode = ft.ThemeMode.LIGHT
 
-        self.page.horizontal_alignment = 'center'
-        self.page.vertical_alignment = 'center'
+        self.page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+        self.page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
     def center(self):
-            self.page.window.left = (self.page.width//2) - (self.page.window.width//2)
-            self.page.window.top = (self.page.height//2) - (self.page.window.height//2)
+        page_width = self.page.width or 0
+        page_height = self.page.height or 0
+        window_width = self.page.window.width or 0
+        window_height = self.page.window.height or 0
+
+        self.page.window.left = (page_width // 2) - (window_width // 2)
+        self.page.window.top = (page_height // 2) - (window_height // 2)
 
     def on_navigation_change(self,e):
         selected_index = e.control.selected_index
@@ -749,11 +754,6 @@ class ventana():
     def show_settings(self):
         self.page.controls.clear()
         self.page.add(self.settings)
-
-    def show_test(self):
-        self.page.controls.clear()
-        self.page.add(self.test)
-
     
 
     def build(self):
