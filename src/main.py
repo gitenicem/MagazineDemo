@@ -188,6 +188,14 @@ class Home(ft.Column):
         #self.db_data=data
         #self.automatico_activo = False
 
+        self.dialog = ft.AlertDialog(
+            title=ft.Text("Error"),
+            content=ft.Text("Primero debe seleccionar un piso."),
+            actions=[
+                ft.TextButton("Aceptar",on_click= lambda e: self.page.pop_dialog())
+            ],
+            open=True,
+        )
 
         self.conveyor = ft.Image(
             src="conveyoroff.png",
@@ -299,7 +307,11 @@ class Home(ft.Column):
     def entregar_clicked(self, e):
         global wip
         global data
-        piso = int(self.group.value) # type: ignore
+        if not self.group.value is None:
+            piso = int(self.group.value)
+        else:
+            piso = 0
+            self.page.show_dialog(self.dialog)
 
         wip = data.get_estacion("WIP1") # type: ignore
         estadoP1, estadoP2 = wip.pisos_estado.pisos.values() # type: ignore
@@ -311,6 +323,9 @@ class Home(ft.Column):
                 assert self.conveyor is not None
                 self.conveyor.src = "conveyorout.gif"
                 self.conveyor.visible = True
+            else:
+                self.dialog.content=ft.Text(f"P{piso} No está preparado para entregar")
+                self.page.show_dialog(self.dialog)
 
         if piso == 2:
             if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value:
@@ -319,13 +334,21 @@ class Home(ft.Column):
                 assert self.conveyor is not None
                 self.conveyor.src = "conveyorout.gif"
                 self.conveyor.visible = True
+            else:
+                self.dialog.content=ft.Text(f"P{piso} No está preparado para entregar")
+                self.page.show_dialog(self.dialog)
 
         print("Ejecuta acción de entregar magazine")
+
 
     def recibir_clicked(self, e):
         global wip
         global data
-        piso = int(self.group.value) # type: ignore
+        if not self.group.value is None:
+            piso = int(self.group.value)
+        else:
+            piso = 0
+            self.page.show_dialog(self.dialog)
 
         wip = data.get_estacion("WIP1") # type: ignore
         estadoP1, estadoP2 = wip.pisos_estado.pisos.values() # type: ignore
@@ -337,6 +360,9 @@ class Home(ft.Column):
                 assert self.conveyor is not None
                 self.conveyor.src = "conveyorin.gif"
                 self.conveyor.visible = True
+            else:
+                self.dialog.content=ft.Text(f"P{piso} No está preparado para recibir")
+                self.page.show_dialog(self.dialog)
 
         if piso == 2:
             if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value:
@@ -345,6 +371,9 @@ class Home(ft.Column):
                 assert self.conveyor is not None
                 self.conveyor.src = "conveyorin.gif"
                 self.conveyor.visible = True
+            else:
+                self.dialog.content=ft.Text(f"P{piso} No está preparado para recibir")
+                self.page.show_dialog(self.dialog)
 
         print("Ejecuta acción de recibir magazine")
 
@@ -466,17 +495,18 @@ class Home(ft.Column):
             await asyncio.sleep(1)
 
             
-        
-    
+            
 
-#@ft.control
+
 class Settings(ft.Column):
-
     global data
 
     def check_pass(self,e):
          self.txtpassword.password = not e.control.value
          self.txtpassword.update()
+
+    def handle_banner_close(self, e: ft.Event[ft.TextButton]):
+        self.page.pop_dialog()
 
     def save_pisos_config(self, e):
         self.page._remove_dialog(self.banner)
@@ -484,6 +514,7 @@ class Settings(ft.Column):
         p2 = self.alturap2.value
         self.pisosconfig.piso1.altura = int(p1) # type: ignore
         self.pisosconfig.piso2.altura = int(p2) # type: ignore
+        
 
         pisos_conf = json.dumps({
             "piso1": asdict(self.pisosconfig.piso1), # type: ignore
@@ -499,9 +530,7 @@ class Settings(ft.Column):
             self.page.show_dialog(self.banner)
 
     def save_amr_config(self, e):
-             
         self.page._remove_dialog(self.banner)
-        
         alias = self.txtalias.value
         ip = self.txtip.value
         puerto = int(self.txtpuerto.value)
@@ -515,226 +544,233 @@ class Settings(ft.Column):
             self.banner.content = ft.Text(value="Sin cambios")
             self.page.show_dialog(self.banner)
 
-    def handle_banner_close(self, e: ft.Event[ft.TextButton]):
-        self.page.pop_dialog()
-             
-    
+
+
     def __init__(self):
-            super().__init__()
-            #self.amr_config_data = data
-            amrconfig = dict(enumerate(data.get_amr_config()))
-            self.pisosconfig = data.get_pisos_config()
-            self.alturap1 = ft.TextField(str(self.pisosconfig.piso1.altura), bgcolor=ft.Colors.WHITE) # type: ignore
-            self.alturap2 = ft.TextField(str(self.pisosconfig.piso2.altura), bgcolor=ft.Colors.WHITE) # type: ignore
-            self.txtalias = ft.TextField(amrconfig[0].alias, bgcolor=ft.Colors.WHITE)
-            self.txtip = ft.TextField(amrconfig[0].ip, bgcolor=ft.Colors.WHITE)
-            self.txtpuerto = ft.TextField(amrconfig[0].puerto, bgcolor=ft.Colors.WHITE) # type: ignore
-            self.txtpassword = ft.TextField(amrconfig[0].password, password=True, bgcolor=ft.Colors.WHITE)
-            self.banner = ft.Banner(
-                leading=ft.Icon(ft.Icons.INFO_OUTLINED, color=ft.Colors.PRIMARY),
-                content = "",
-                actions=[
-                    ft.TextButton(
-                        content = "Dismiss",
-                        on_click=self.handle_banner_close # type: ignore
+        super().__init__()
+        self.scroll=ft.ScrollMode.AUTO
+        self.expand=True
+        self.alignment = ft.CrossAxisAlignment.CENTER
+        amrconfig = dict(enumerate(data.get_amr_config()))
+        self.pisosconfig = data.get_pisos_config()
+        self.alturap1 = ft.TextField(str(self.pisosconfig.piso1.altura), bgcolor=ft.Colors.WHITE) # type: ignore
+        self.alturap2 = ft.TextField(str(self.pisosconfig.piso2.altura), bgcolor=ft.Colors.WHITE) # type: ignore
+        self.txtalias = ft.TextField(amrconfig[0].alias, bgcolor=ft.Colors.WHITE)
+        self.txtip = ft.TextField(amrconfig[0].ip, bgcolor=ft.Colors.WHITE)
+        self.txtpuerto = ft.TextField(amrconfig[0].puerto, bgcolor=ft.Colors.WHITE) # type: ignore
+        self.txtpassword = ft.TextField(amrconfig[0].password, password=True, bgcolor=ft.Colors.WHITE)
+        self.banner = ft.Banner(
+            leading=ft.Icon(ft.Icons.INFO_OUTLINED, color=ft.Colors.PRIMARY),
+            content = "",
+            actions=[
+                ft.TextButton(
+                    content = "Ocultar",
+                    on_click=self.handle_banner_close # type: ignore
+                )
+            ],
+            bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
+            open=True,
+        )
+
+
+        
+        self.controls = [
+
+            # ROW o COLUMN PARA INVERTIR DIRECCION
+            ft.Column(
+                expand=True,
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=50,
+                controls=[
+                    ft.Card(
+                        shadow_color=ft.Colors.ON_SURFACE_VARIANT,
+                        elevation=20,
+                        content=ft.Container(
+                            padding=20,
+                            width=420,
+                            content=ft.Column(
+                                controls=[
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.CENTER,
+                                        controls=[
+                                            ft.Text('PISO CONFIG', weight=ft.FontWeight.W_700)
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        controls=[
+                                            ft.Text('ALTURA P1', weight=ft.FontWeight.W_500),
+                                            self.alturap1
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        controls=[
+                                            ft.Text('ALTURA P2', weight=ft.FontWeight.W_500),
+                                            self.alturap2
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.END,
+                                        controls=[
+                                            ft.Button(
+                                                icon=ft.Icons.SAVE,
+                                                content="Guardar",
+                                                style=ft.ButtonStyle(
+                                                    shape=ft.RoundedRectangleBorder(radius=10)
+                                                ),
+                                                on_click=self.save_pisos_config
+                                            )
+                                        ]
+                                    ),
+                                ]
+                            )
+                        )
+
+                    ),
+                    ft.Card(
+                        shadow_color=ft.Colors.ON_SURFACE_VARIANT,
+                        elevation=20,
+                        content=ft.Container(
+                            padding=ft.Padding(right=20, left=0, top=20, bottom=20),
+                            width=420,
+                            content=ft.Column(
+                                #alignment=ft.MainAxisAlignment.CENTER,
+                                spacing=10,
+                                controls=[
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.CENTER,
+                                        controls=[
+                                            ft.Text('AMR CONFIG', weight=ft.FontWeight.W_700)
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.END,
+                                        controls=[
+                                            ft.Text('ALIAS', weight=ft.FontWeight.W_500),
+                                            self.txtalias
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.END,
+                                        controls=[
+                                            ft.Text('IP', weight=ft.FontWeight.W_500),
+                                            self.txtip
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.END,
+                                        controls=[
+                                            ft.Text('PUERTO', weight=ft.FontWeight.W_500),
+                                            self.txtpuerto
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.END,
+                                        controls=[
+                                            ft.Text('PASSWORD', weight=ft.FontWeight.W_500),
+                                            self.txtpassword
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.END,
+                                        controls=[
+                                            ft.Checkbox("Mostrar password", on_change=self.check_pass)
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.END,
+                                        controls=[
+                                            ft.Button(
+                                                icon=ft.Icons.SAVE,
+                                                content="Guardar",
+                                                style=ft.ButtonStyle(
+                                                    shape=ft.RoundedRectangleBorder(radius=10)
+                                                ),
+                                                on_click=self.save_amr_config
+                                            )
+                                        ]
+                                    )
+                                ]
+                            )
+                        )
+                    
                     )
-                ],
-                bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
-                open=True,
+                ]
+
             )
 
-            self.controls = [
 
-                ft.Container(
-                    expand=True,
-                    alignment=ft.Alignment(0, 0),
-                    content=ft.Container(
-                         content=ft.Column(
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
-                            spacing=15,
-                            controls=[
-                                 ft.Text("PISOS_CONFIG", weight=ft.FontWeight.W_700)
-                            ]
-                         )
-                    )
-                 ),
-                 # Formulario configuración pisos
-                 ft.Container(
-                     expand=True,
-                     alignment=ft.Alignment(0,0),
-                     content=ft.Container(
-                         border=ft.Border.all(1, ft.Colors.PRIMARY),
-                         border_radius=10,
-                         padding=20,
-                         width=450,
-                         content=ft.Column(
-                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                             #spacing=15,
-                             controls=[
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                    controls=[
-                                        ft.Text("PISO 1", weight=ft.FontWeight.W_700),
-                                        self.alturap1
-                                    ]
-                                ),
-                                ft.Row(
-                                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                     controls=[
-                                        ft.Text("PISO 2", weight=ft.FontWeight.W_700),
-                                        self.alturap2
-                                    ]
-                                ),
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.SPACE_AROUND,
-                                    controls=[
-                                        ft.Button(
-                                            icon=ft.Icons.SAVE,
-                                            content="Guardar",
-                                            style=ft.ButtonStyle(
-                                                shape=ft.RoundedRectangleBorder(radius=10)
-                                            ),
-                                            on_click=self.save_pisos_config
-                                        )
-                                    ]
-                                )
-
-                             ]
-                         )
-                     )
-                 ),
-                 ft.Container(
-                    expand=True,
-                    alignment=ft.Alignment(0, 0),
-                    content=ft.Container(
-                         content=ft.Column(
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
-                            #spacing=15,
-                            controls=[
-                                 ft.Text("AMR_CONFIG", weight=ft.FontWeight.W_700)
-                            ]
-                         )
-                    )
-                 ),
-                ft.Container(
-                    expand=True,
-                    alignment=ft.Alignment(0, 0),  # Centrado absoluto válido en Flet moderno (0,0 es el centro)
-                    content=ft.Container(
-                        border=ft.Border.all(1, ft.Colors.SECONDARY),
-                        border_radius = 10,
-                        padding=20,
-                        #bgcolor=ft.Colors.SECONDARY_CONTAINER,
-                        width=450,
-                        content=ft.Column(
-                            # SOLUCIÓN: El alineamiento horizontal correcto para Columnas en la nueva versión
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
-                            spacing=15,
-                            controls=[
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                    controls=[
-                                        ft.Text("ALIAS", weight=ft.FontWeight.W_700),
-                                        self.txtalias
-                                    ]
-                                ),
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                    controls=[
-                                        ft.Text("IP", weight=ft.FontWeight.W_700),
-                                        self.txtip
-                                    ]
-                                ),
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                    controls=[
-                                        ft.Text("PUERTO", weight=ft.FontWeight.W_700),
-                                        self.txtpuerto
-                                    ]
-                                ),
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                    controls=[
-                                        ft.Text("PASSWORD", weight=ft.FontWeight.W_700),
-                                        self.txtpassword
-                                    ]
-                                ),
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.END,
-                                    controls=[
-                                        ft.Checkbox("Mostrar password", on_change=self.check_pass)
-                                    ]
-                                ),
-                                ft.Row(
-                                    alignment=ft.MainAxisAlignment.SPACE_AROUND,
-                                    controls=[
-                                        ft.Button(
-                                            icon=ft.Icons.SAVE,
-                                            content="Guardar",
-                                            style=ft.ButtonStyle(
-                                                shape=ft.RoundedRectangleBorder(radius=10)
-                                            ),
-                                            on_click=self.save_amr_config
-                                        )
-                                    ]
-                                )
-                            ]
-                        )
-                    )
-                )
         ]
-            
 
 
+# border=ft.Border.all(5, "#C3C6C6"),
+# border_radius=10,
+# padding=20,
 
 
-async def main(page: ft.Page):
+class ventana():
     global data
-    cargar_config()
     data = DataController()
-    #AmrsController.iniciar()
-
-    page.title = "Demo"
-    page.theme = ft.Theme(color_scheme_seed=ft.Colors.SECONDARY)
-    #await page.window.center()
-    #page.window.full_screen=True
-    #page.window.width = 1100
-    #page.window.height = 500
-    page.update()
-
-    # Vistas dsiponibles
+    page: ft.Page
     home = Home()
     settings = Settings()
-    
-    def on_navigation_change(e):
-            selected_index = e.control.selected_index
-            if selected_index == 0:
-                show_home()
-            elif selected_index == 1:
-                show_settings()
-            page.update()
+
+    def __init__(self, page: ft.page):
+        self.page = page
+        self.window_settings()
+        self.center()
+        self.build()
+
+    def window_settings(self):
+        self.page.title = 'Demo'
+        self.page.window.width = 1100
+        self.page.window.height = 500
+        self.page.window.resizable = True
+        self.page.theme_mode = 'light'
+
+        self.page.horizontal_alignment = 'center'
+        self.page.vertical_alignment = 'center'
+
+    def center(self):
+            self.page.window.left = (self.page.width//2) - (self.page.window.width//2)
+            self.page.window.top = (self.page.height//2) - (self.page.window.height//2)
+
+    def on_navigation_change(self,e):
+        selected_index = e.control.selected_index
+        if selected_index == 0:
+            self.show_home()
+        elif selected_index == 1:
+            self.show_settings()
+        self.page.update()
             
-    def show_home():
-        page.controls.clear()
-        page.add(home)
+    def show_home(self):
+        self.page.controls.clear()
+        self.page.add(self.home)
         
-    def show_settings():
-        page.controls.clear()
-        page.add(settings)
+    def show_settings(self):
+        self.page.controls.clear()
+        self.page.add(self.settings)
 
-    page.navigation_bar = ft.NavigationBar(
-        selected_index=1,
-        on_change=on_navigation_change,
-        destinations=[
-            ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Inicio"),
-            ft.NavigationBarDestination(icon=ft.Icons.SETTINGS, label="Configuración")
-        ]
-    )
-
-    page.add(ft.SafeArea(home))
+    def show_test(self):
+        self.page.controls.clear()
+        self.page.add(self.test)
 
     
-    
+
+    def build(self):
+        self.page.navigation_bar = ft.NavigationBar(
+                selected_index=0,
+                on_change=self.on_navigation_change,
+                destinations=[
+                    ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Inicio"),
+                    ft.NavigationBarDestination(icon=ft.Icons.SETTINGS, label="Configuración")
+                ]
+            )
+        self.page.add(ft.SafeArea(self.home))
+
+
+
+
 
 if __name__ == "__main__":
-    ft.run(main)
+    ft.run(ventana)
     
