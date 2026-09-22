@@ -126,16 +126,6 @@ class Secuencia():
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.PREPARADO.value:
                         cls.next()
             case 2:
-                cls.next()
-                # if cls.origen:
-                #     print(f"[ORIGEN {cls.piso}] Esperando servidor_acciones NONE")
-                #     if wip.servidor_acciones.get(f"{cls.piso}") == None:
-                #         cls.next()
-                # else:
-                #     print(f"[DESTINO {cls.piso}] Esperando servidor_acciones NONE")
-                #     if wip.servidor_acciones.get(f"{cls.piso}") == None:
-                #         cls.next()
-            case 3:
                 if cls.origen:
                     print(f"[ORIGEN {cls.piso}] Esperando amr_estado FINALIZADO")
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.FINALIZADO.value:
@@ -144,7 +134,7 @@ class Secuencia():
                     print(f"[DESTINO {cls.piso}] Esperando amr_estado FINALIZADO")
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.FINALIZADO.value:
                         cls.next()
-            case 4:
+            case 3:
                 if cls.origen:
                     print(f"[ORIGEN {cls.piso}] Esperando amr_estado SIGUIENTE")
                     if wip.amr_estado.get(f"{cls.piso}") == EstadosAmr.SIGUIENTE.value:
@@ -153,7 +143,7 @@ class Secuencia():
                     print(f"[DESTINO {cls.piso}] Esperando amr_estado NONE")
                     if not wip.amr_estado.get(f"{cls.piso}"):
                         cls.next()
-            case 5:
+            case 4:
                 if cls.origen:
                     print(f"[ORIGEN {cls.piso}] Esperando servidor_acciones NONE")
                     data.limpiar_servidor_acciones(cls.piso, wip)
@@ -165,7 +155,7 @@ class Secuencia():
                     data.limpiar_servidor_acciones(cls.piso, wip)
                     if not wip.servidor_acciones.get(f"{cls.piso}"):
                         cls.next()
-            case 6:
+            case 5:
                 if cls.origen:
                     print(f"[ORIGEN {cls.piso}] Esperando amr_estado NONE")
                     data.limpiar_orden_amr()
@@ -362,9 +352,6 @@ class Home(ft.Column):
             if estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value:
                 data.set_servidor_acciones_recibir(piso="P1", estacion=wip) # type: ignore
                 Secuencia.init(origen=False, piso="P1")
-                #assert self.conveyor is not None
-                #self.conveyor.src = "conveyorin.gif"
-                #self.conveyor.visible = True
             else:
                 self.dialog.content=ft.Text(f"P{piso} No está preparado para recibir")
                 self.page.show_dialog(self.dialog)
@@ -373,9 +360,6 @@ class Home(ft.Column):
             if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value:
                 data.set_servidor_acciones_recibir(piso="P2", estacion=wip) # type: ignore
                 Secuencia.init(origen=False, piso="P2")
-                #assert self.conveyor is not None
-                #self.conveyor.src = "conveyorin.gif"
-                #self.conveyor.visible = True
             else:
                 self.dialog.content=ft.Text(f"P{piso} No está preparado para recibir")
                 self.page.show_dialog(self.dialog)
@@ -457,41 +441,43 @@ class Home(ft.Column):
                     wip = data.get_estacion("WIP1") # type: ignore
                     estadoP1, estadoP2 = wip.pisos_estado.pisos.values() # type: ignore
 
-                    #print(f"EstadoP1:{estadoP1} EstadoP2:{estadoP2}")
+                    print(f"EstadoP1:{estadoP1} EstadoP2:{estadoP2}")
 
                     # CREACION DEL FLUJO
                     # Si los dos solo pueden recibir no se crea flujo
-                    if not (estadoP1 == EstadosPiso.PREPARADO_RECIBIR and estadoP2 == EstadosPiso.PREPARADO_RECIBIR):
+                    if not (estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value and estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value):
+
+                        print("Creando flujo")
 
                         if not Secuencia.running() and not flujo.running():
                             if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE (POSIBLE ORIGEN)
                                 if not flujo.origen_creado:
-                                    flujo.set_origen('P1','NONE')
+                                    flujo.set_origen('P1','')
 
                         if not Secuencia.running() and not flujo.running():
                             if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE (POSIBLE ORIGEN)
                                 if not flujo.origen_creado:
-                                    flujo.set_origen('P2','NONE')
+                                    flujo.set_origen('P2','')
 
 
 
                         if not Secuencia.running() and not flujo.running():
                             if estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value: # NO TIENE MAGAZINE (POSIBLE DESTINO)
                                 if not flujo.destino_creado:
-                                    flujo.set_destino('P1','NONE')
+                                    flujo.set_destino('P1','')
                         
                         if not Secuencia.running() and not flujo.running():
                             if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value: # NO TIENE MAGAZINE (POSIBLE DESTINO)
                                 if not flujo.destino_creado:
-                                    flujo.set_destino('P2','NONE')
+                                    flujo.set_destino('P2','')
 
 
                     # INICIO DEL FLUJO
                     if flujo.running():
 
-                        #print(f"Origen: {flujo._origen.get('estado')} Destino: {flujo._destino.get('estado')}")
+                        print(f"Origen: {flujo._origen.get('estado')} Destino: {flujo._destino.get('estado')}")
 
-                        if flujo._origen.get('estado') == "NONE":
+                        if not flujo._origen.get('estado'):
                             flujo._origen['estado'] = "RUNNING"
                             if data:
                                 if not estadoP1 == EstadosPiso.ENTREGAR.value:
@@ -499,7 +485,7 @@ class Home(ft.Column):
                                     data.enviar_orden_amr_recibe(piso=str(flujo._origen.get('piso')))
                                     self.amr_ejecutar_entrega(piso = str(flujo._origen.get('piso')), origen = True)
 
-                        if flujo._destino.get('estado') == "NONE" and flujo._origen.get('estado') == "IDDLE":
+                        if (not flujo._destino.get('estado')) and flujo._origen.get('estado') == "IDDLE":
                             flujo._destino['estado'] = "RUNNING"
                             if data:
                                     if not estadoP2 == EstadosPiso.RECIBIR.value:
@@ -766,8 +752,8 @@ class ventana():
 
     def window_settings(self):
         self.page.title = 'Demo'
-        self.page.window.width = 1100
-        self.page.window.height = 500
+        self.page.window.width = 800
+        self.page.window.height = 700
         self.page.window.resizable = True
         self.page.theme_mode = ft.ThemeMode.LIGHT
 

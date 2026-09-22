@@ -145,7 +145,6 @@ class DataAccess:
 
     @staticmethod
     def set_servidor_acciones_entregar(piso: str, estacion: Estacion) -> bool:
-        #estacion.servidor_acciones[f"{piso}"] = "ENTREGAR"
         value = {piso:'ENTREGAR'}
 
         with DataAccess.__candado: # type: ignore
@@ -157,7 +156,6 @@ class DataAccess:
 
     @staticmethod
     def set_servidor_acciones_recibir(piso: str, estacion: Estacion) -> bool:
-        #estacion.servidor_acciones[f"{piso}"] = "RECIBIR"
         value = {piso:'RECIBIR'}
 
         with DataAccess.__candado: # type: ignore
