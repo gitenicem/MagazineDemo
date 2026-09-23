@@ -3,7 +3,7 @@ import json
 import asyncio
 
 import flet as ft
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from config.db_config import cargar_config
 from helpers.estados import EstadosPiso, EstadosAmr
 from controller.amrs import AmrsController
@@ -199,43 +199,80 @@ class Home(ft.Column):
 
         self.conveyor = ft.Image(
             src="conveyoroff.png",
-            visible=False,
-            height=200,
+            visible=True,
+            height=300,
             fit=ft.BoxFit.CONTAIN,
         )
 
         self.group = ft.RadioGroup(
             content=ft.Row(
                 controls=[
-                    ft.Radio(value="1", label="PISO 1"),
-                    ft.Radio(value="2", label="PISO 2")
+                    ft.Radio(value="1", label="PISO 1", label_style=ft.TextStyle(size=24, weight=ft.FontWeight.W_700)),
+                    ft.VerticalDivider(thickness=10),
+                    ft.Radio(value="2", label="PISO 2", label_style=ft.TextStyle(size=24, weight=ft.FontWeight.W_700))
                 ]
             )
         )
 
         self.btnEntregar = ft.Button(
-            icon=ft.Icons.OUTBOX,
-            content="Entregar",
+            width=300,
+            icon=ft.Icon(
+                ft.Icons.OUTBOX,
+                size=50,
+            ),
+            elevation=15,
             style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10)
+                shape=ft.RoundedRectangleBorder(radius=20),
+                alignment=ft.Alignment.CENTER,
+                padding=ft.Padding(left=50, top=20, right=50, bottom=20)
+            ),
+            content=ft.Container(
+                #bgcolor=ft.Colors.BLUE_100,
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        ft.Text('Entregar', size=20, weight=ft.FontWeight.W_900)
+                    ]
+                )
             ),
             on_click=self.entregar_clicked
-        )
+        )        
 
         self.btnRecibir = ft.Button(
-            icon=ft.Icons.INBOX,
-            content="Recibir",
+            width=300,
+            icon=ft.Icon(
+                ft.Icons.INBOX,
+                size=50,
+            ),
+            elevation=15,
             style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10)
+                shape=ft.RoundedRectangleBorder(radius=20),
+                alignment=ft.Alignment.CENTER,
+                padding=ft.Padding(left=50, top=20, right=50, bottom=20)
+            ),
+            content=ft.Container(
+                #bgcolor=ft.Colors.BLUE_100,
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        ft.Text('Recibir', size=20, weight=ft.FontWeight.W_900)
+                    ]
+                )
             ),
             on_click=self.recibir_clicked
-        )
+        )       
 
         self.btnAutomatico = ft.Button(
-            icon=ft.Icons.AUTO_AWESOME,
+            width=650,
+            icon=ft.Icon(
+                ft.Icons.AUTO_AWESOME,
+                size=50
+            ),
+            elevation=15,
             content="Automático",
             style=ft.ButtonStyle(
-                shape=ft.RoundedRectangleBorder(radius=10)
+                shape=ft.RoundedRectangleBorder(radius=20),
+                padding=ft.Padding(left=50, top=20, right=50, bottom=20)
             ),
             on_click=self.automatico_clicked
         )
@@ -244,7 +281,7 @@ class Home(ft.Column):
             ft.Container(
                 #border=ft.Border.all(1, ft.Colors.BLACK),
                 #border_radius = 10,
-                padding = 10,
+                padding = 20,
                 content = ft.Row(
                     alignment=ft.MainAxisAlignment.CENTER,
                     controls=[
@@ -255,6 +292,10 @@ class Home(ft.Column):
                         )
                     ]
                 ),
+            ),
+            ft.Divider(
+                height=100,
+                color=ft.Colors.TRANSPARENT
             ),
             ft.Container(
                 padding = 10,
@@ -267,7 +308,6 @@ class Home(ft.Column):
             ),
             ft.Container(
                 padding = 1,
-
                 content = ft.Row(
                     alignment=ft.MainAxisAlignment.CENTER,
                     controls=[
@@ -275,7 +315,10 @@ class Home(ft.Column):
                     ]
                 )
             ),
-
+            ft.Divider(
+                height=30,
+                color=ft.Colors.TRANSPARENT
+            ),
             ft.Container(
                 # border=ft.Border.all(1, ft.Colors.BLACK),
                 # border_radius = 10,
@@ -284,11 +327,16 @@ class Home(ft.Column):
 
                 content = ft.Row(
                     alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=50,
                     controls=[
                         self.btnEntregar,
                         self.btnRecibir
                     ]
                 )
+            ),
+            ft.Divider(
+                height=30,
+                color=ft.Colors.TRANSPARENT
             ),
             ft.Container(
                  padding=1,
@@ -482,7 +530,6 @@ class Home(ft.Column):
                             if data:
                                 if not estadoP1 == EstadosPiso.ENTREGAR.value:
                                     data.set_servidor_acciones_entregar(piso = str(flujo._origen.get('piso')), estacion = wip)
-                                    data.enviar_orden_amr_recibe(piso=str(flujo._origen.get('piso')))
                                     self.amr_ejecutar_entrega(piso = str(flujo._origen.get('piso')), origen = True)
 
                         if (not flujo._destino.get('estado')) and flujo._origen.get('estado') == "IDDLE":
@@ -490,8 +537,7 @@ class Home(ft.Column):
                             if data:
                                     if not estadoP2 == EstadosPiso.RECIBIR.value:
                                         data.set_servidor_acciones_recibir(piso = str(flujo._destino.get('piso')), estacion = wip)
-                                        data.enviar_orden_amr_entrega(piso=str(flujo._destino.get('piso')))
-                                        self.amr_ejecutar_entrega(str(flujo._destino.get('piso')), origen = False )
+                                        self.amr_ejecutar_recepcion(str(flujo._destino.get('piso')), origen = False )
                                     
 
 
@@ -743,7 +789,7 @@ class ventana():
     def __init__(self, page: ft.Page):
         self.page = page
         self.window_settings()
-        self.page.run_task(self.center)   # lanza la coroutine sin bloquear __init__
+        #self.page.run_task(self.center)   # lanza la coroutine sin bloquear __init__
         self.build()
 
     async def center(self):
@@ -753,12 +799,13 @@ class ventana():
     def window_settings(self):
         self.page.title = 'Demo'
         self.page.window.width = 800
-        self.page.window.height = 700
+        self.page.window.height = 900
         self.page.window.resizable = True
         self.page.theme_mode = ft.ThemeMode.LIGHT
+        print(self.page.bgcolor)
 
         self.page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-        self.page.vertical_alignment = ft.MainAxisAlignment.CENTER
+        self.page.vertical_alignment = ft.MainAxisAlignment.START
 
     def on_navigation_change(self,e):
         selected_index = e.control.selected_index
