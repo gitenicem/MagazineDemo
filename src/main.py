@@ -277,6 +277,29 @@ class Home(ft.Column):
             ),
             on_click=self.automatico_clicked
         )
+
+        self.btnReset = ft.Button(
+            width=230,
+            icon=ft.Icon(
+                ft.Icons.AUTORENEW,
+                size=50
+            ),
+            elevation=15,
+            content=ft.Container(
+                #bgcolor=ft.Colors.BLUE_100,
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.START,
+                    controls=[
+                        ft.Text('RESET', size=20, weight=ft.FontWeight.W_900)
+                    ]
+                ),
+                on_click=lambda e: Secuencia.finish()
+            ),
+            style=ft.ButtonStyle(
+                shape=ft.RoundedRectangleBorder(radius=10),
+                padding=ft.Padding(left=50, top=20, right=50, bottom=20)
+            )
+        )
         
         self.controls = [
             ft.Container(
@@ -295,7 +318,7 @@ class Home(ft.Column):
                 ),
             ),
             ft.Divider(
-                height=50,
+                height=10,
                 color=ft.Colors.TRANSPARENT
             ),
             ft.Container(
@@ -317,7 +340,7 @@ class Home(ft.Column):
                 )
             ),
             ft.Divider(
-                height=30,
+                height=10,
                 color=ft.Colors.TRANSPARENT
             ),
             ft.Container(
@@ -335,10 +358,10 @@ class Home(ft.Column):
                     ]
                 )
             ),
-            ft.Divider(
-                height=30,
-                color=ft.Colors.TRANSPARENT
-            ),
+            # ft.Divider(
+            #     height=30,
+            #     color=ft.Colors.TRANSPARENT
+            # ),
             ft.Container(
                  padding=1,
                  content=ft.Row(
@@ -347,18 +370,22 @@ class Home(ft.Column):
                            self.btnAutomatico
                       ]
                  )
+            ),
+            ft.Container(
+                padding=1,
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    controls=[
+                        self.btnReset
+                    ]
+                )
+
             )
 
             
             
         ]
 
-    
-    def reset(self):
-        global wip
-        global data
-
-        data.limpiar_servidor_acciones
     
 
     def entregar_clicked(self, e):
@@ -790,29 +817,29 @@ class Settings(ft.Column):
 
 
 class ventana():
-    global data
-    data = DataController()
-    page: ft.Page
-    home = Home()
-    settings = Settings()
-
+    # global data
+    # data = DataController()
     # page: ft.Page
+    # home = Home()
+    # settings = Settings()
+
+    page: ft.Page
     
 
     def __init__(self, page: ft.Page):
-        self.page = page
-        self.window_settings()
-        #self.page.run_task(self.center)   # lanza la coroutine sin bloquear __init__
-        self.build()
-
-        # global data
-        # print("Iniciando ventana...")
-        # data = DataController()
         # self.page = page
         # self.window_settings()
-        # self.home = Home()
-        # self.settings = Settings()
+        # #self.page.run_task(self.center)   # lanza la coroutine sin bloquear __init__
         # self.build()
+
+        global data
+        print("Iniciando ventana...")
+        data = DataController()
+        self.page = page
+        self.window_settings()
+        self.home = Home()
+        self.settings = Settings()
+        self.build()
 
     async def center(self):
         await self.page.window.center()
@@ -821,7 +848,7 @@ class ventana():
     def window_settings(self):
         self.page.title = 'Demo'
         self.page.window.width = 800
-        self.page.window.height = 900
+        self.page.window.height = 1000
         self.page.window.resizable = True
         self.page.theme_mode = ft.ThemeMode.LIGHT
         print(self.page.bgcolor)
