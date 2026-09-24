@@ -1,3 +1,4 @@
+from __future__ import annotations # Importaciones solo como tipos
 from dataclasses import asdict
 import json
 import asyncio
@@ -167,10 +168,10 @@ class Secuencia():
                     if wip.amr_estado.get(f"{cls.piso}") == None:
                         cls.next()
             case _:
-                if cls.home:
-                    cls.home.conveyor.visible = False
-                    cls.home.conveyor.update() 
-                cls.finish()
+                # if cls.home:
+                    # cls.home.conveyor.visible = False
+                    # cls.home.conveyor.update() 
+                    cls.finish()
 
 
 
@@ -287,14 +288,14 @@ class Home(ft.Column):
                     controls=[
                         ft.Image(
                             src="ENICEM.png",
-                            height=100,
+                            height=150,
                             fit=ft.BoxFit.CONTAIN,
                         )
                     ]
                 ),
             ),
             ft.Divider(
-                height=100,
+                height=50,
                 color=ft.Colors.TRANSPARENT
             ),
             ft.Container(
@@ -352,6 +353,13 @@ class Home(ft.Column):
             
         ]
 
+    
+    def reset(self):
+        global wip
+        global data
+
+        data.limpiar_servidor_acciones
+    
 
     def entregar_clicked(self, e):
         global wip
@@ -419,9 +427,10 @@ class Home(ft.Column):
             self.automatico_activo = False
             self.btnEntregar.disabled = False
             self.btnRecibir.disabled = False
+            #self.reset()
         else:
-            assert self.conveyor is not None
-            self.conveyor.visible = False
+            #assert self.conveyor is not None
+            #self.conveyor.visible = False
             self.automatico_activo = True
             self.btnEntregar.disabled = True
             self.btnRecibir.disabled = True
@@ -499,24 +508,26 @@ class Home(ft.Column):
 
                         if not Secuencia.running() and not flujo.running():
                             if estadoP1 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE (POSIBLE ORIGEN)
-                                if not flujo.origen_creado:
+                                if not flujo.origen_creado and not flujo.destino_creado:
+                                #if not flujo.origen_creado:
                                     flujo.set_origen('P1','')
 
                         if not Secuencia.running() and not flujo.running():
                             if estadoP2 == EstadosPiso.PREPARADO_ENTREGAR_RECIBIR.value: # TIENE UN MAGAZINE (POSIBLE ORIGEN)
-                                if not flujo.origen_creado:
+                                if not flujo.origen_creado and not flujo.destino_creado:
+                                #if not flujo.origen_creado:
                                     flujo.set_origen('P2','')
 
 
 
                         if not Secuencia.running() and not flujo.running():
                             if estadoP1 == EstadosPiso.PREPARADO_RECIBIR.value: # NO TIENE MAGAZINE (POSIBLE DESTINO)
-                                if not flujo.destino_creado:
+                                if not flujo.destino_creado and flujo.origen_creado:
                                     flujo.set_destino('P1','')
                         
                         if not Secuencia.running() and not flujo.running():
                             if estadoP2 == EstadosPiso.PREPARADO_RECIBIR.value: # NO TIENE MAGAZINE (POSIBLE DESTINO)
-                                if not flujo.destino_creado:
+                                if not flujo.destino_creado and flujo.origen_creado:
                                     flujo.set_destino('P2','')
 
 
@@ -784,6 +795,8 @@ class ventana():
     page: ft.Page
     home = Home()
     settings = Settings()
+
+    # page: ft.Page
     
 
     def __init__(self, page: ft.Page):
@@ -791,6 +804,15 @@ class ventana():
         self.window_settings()
         #self.page.run_task(self.center)   # lanza la coroutine sin bloquear __init__
         self.build()
+
+        # global data
+        # print("Iniciando ventana...")
+        # data = DataController()
+        # self.page = page
+        # self.window_settings()
+        # self.home = Home()
+        # self.settings = Settings()
+        # self.build()
 
     async def center(self):
         await self.page.window.center()
@@ -842,4 +864,3 @@ class ventana():
 
 if __name__ == "__main__":
     ft.run(ventana)
-    

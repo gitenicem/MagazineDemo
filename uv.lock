@@ -539,6 +539,7 @@ dependencies = [
     { name = "bcrypt" },
     { name = "cryptography" },
     { name = "flet" },
+    { name = "flet-desktop" },
     { name = "mysql-connector-python" },
 ]
 
@@ -555,6 +556,7 @@ requires-dist = [
     { name = "bcrypt", specifier = "==5.0.0" },
     { name = "cryptography", specifier = "==47.0.0" },
     { name = "flet", specifier = ">=0.86.5" },
+    { name = "flet-desktop", specifier = ">=0.86.5" },
     { name = "mysql-connector-python", specifier = "==9.6.0" },
 ]
 

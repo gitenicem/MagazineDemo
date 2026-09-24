@@ -1,3 +1,4 @@
+from __future__ import annotations
 from model.dataclass_coincidencias import EstacionPisoConfig, FlujoPiso
 from model.dataclass_estacion import Estacion, PisosConfig, PisoConfig, PisosEstado
 #from model.manager import ManagerModel
