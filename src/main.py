@@ -76,6 +76,19 @@ class Secuencia():
         cls.paso+=1
 
     @classmethod
+    def reset(cls):
+        print("Reiniciando secuencia")
+        cls.paso = 0
+        flujo.clear()
+        if cls.home:
+            cls.home.automatico_activo = False
+            cls.home.btnEntregar.disabled = False
+            cls.home.btnRecibir.disabled = False
+            cls.home.page.update()
+        cls.home.page.pop_dialog()
+        
+
+    @classmethod
     def finish(cls):
         print("Finish")
         if cls.origen: # Es el origen
@@ -115,6 +128,8 @@ class Secuencia():
         # 3.- AMR -> PISO DESTINO = FINALIZADO
         # 4.- AMR -> PISO DESTINO = ""
         
+
+        print(cls.paso)
 
         match cls.paso:
             case 1:
@@ -167,27 +182,19 @@ class Secuencia():
                     data.limpiar_orden_amr()
                     if wip.amr_estado.get(f"{cls.piso}") == None:
                         cls.next()
-            case _:
-                # if cls.home:
-                    # cls.home.conveyor.visible = False
-                    # cls.home.conveyor.update() 
+            case 6:
                     cls.finish()
 
 
 
 #@ft.control
 class Home(ft.Column):
-    #db_data = None
     automatico_activo = False
     conveyor = None
 
 
     def __init__(self):
         super().__init__()
-        #global conveyor
-
-        #self.db_data=data
-        #self.automatico_activo = False
 
         self.dialog = ft.AlertDialog(
             title=ft.Text("Error"),
@@ -196,6 +203,18 @@ class Home(ft.Column):
                 ft.TextButton("Aceptar",on_click= lambda e: self.page.pop_dialog())
             ],
             open=True,
+        )
+
+        self.modal_dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Por favor confime"),
+            content=ft.Text("Desea reiniciar el proceso actual?"),
+            actions=[
+                ft.TextButton("Si", on_click=lambda e: Secuencia.reset()),
+                ft.TextButton("No", on_click=lambda e: self.page.pop_dialog()),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END
+            #on_dismiss=lambda e: print("Modal dialog dismissed!"),
         )
 
         self.conveyor = ft.Image(
@@ -293,12 +312,13 @@ class Home(ft.Column):
                         ft.Text('RESET', size=20, weight=ft.FontWeight.W_900)
                     ]
                 ),
-                on_click=lambda e: Secuencia.finish()
             ),
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=10),
                 padding=ft.Padding(left=50, top=20, right=50, bottom=20)
-            )
+            ),
+            #on_click=lambda e: Secuencia.reset()
+            on_click=lambda e: self.page.show_dialog(self.modal_dialog),
         )
         
         self.controls = [
@@ -454,10 +474,7 @@ class Home(ft.Column):
             self.automatico_activo = False
             self.btnEntregar.disabled = False
             self.btnRecibir.disabled = False
-            #self.reset()
         else:
-            #assert self.conveyor is not None
-            #self.conveyor.visible = False
             self.automatico_activo = True
             self.btnEntregar.disabled = True
             self.btnRecibir.disabled = True
@@ -817,21 +834,10 @@ class Settings(ft.Column):
 
 
 class ventana():
-    # global data
-    # data = DataController()
-    # page: ft.Page
-    # home = Home()
-    # settings = Settings()
-
     page: ft.Page
     
 
     def __init__(self, page: ft.Page):
-        # self.page = page
-        # self.window_settings()
-        # #self.page.run_task(self.center)   # lanza la coroutine sin bloquear __init__
-        # self.build()
-
         global data
         print("Iniciando ventana...")
         data = DataController()
@@ -839,6 +845,7 @@ class ventana():
         self.window_settings()
         self.home = Home()
         self.settings = Settings()
+        self.page.run_task(self.center)   # lanza la coroutine sin bloquear __init__
         self.build()
 
     async def center(self):
@@ -847,7 +854,7 @@ class ventana():
 
     def window_settings(self):
         self.page.title = 'Demo'
-        self.page.window.width = 800
+        self.page.window.width = 1000
         self.page.window.height = 1000
         self.page.window.resizable = True
         self.page.theme_mode = ft.ThemeMode.LIGHT
