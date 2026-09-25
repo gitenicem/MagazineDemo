@@ -165,12 +165,10 @@ class DataAccess:
             return bool(res)
 
     @staticmethod
-    def limpiar_servidor_acciones(piso:str, estacion:Estacion):
-        estacion.servidor_acciones[f"{piso}"] = ""
+    def limpiar_servidor_acciones():
 
         with DataAccess.__candado: # type: ignore
             query = "UPDATE estaciones SET servidor_acciones = %s WHERE alias = 'WIP1' "
-            #params = (json.dumps(estacion.servidor_acciones),)
             params = ("",)
             res = DataAccess.__conexion.execute_commit(query, params) # type: ignore
             return bool(res)
