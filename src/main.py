@@ -292,7 +292,7 @@ class Home(ft.Column):
                 size=50
             ),
             elevation=15,
-            content="Automático",
+            content=ft.Text('Automático', size=20, weight=ft.FontWeight.W_900),
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=20),
                 padding=ft.Padding(left=50, top=20, right=50, bottom=20)
@@ -509,7 +509,10 @@ class Home(ft.Column):
                 self.conveyor.src = "conveyoroff.png"
                 self.conveyor.visible = True
 
-            self.page.update()
+            try:
+                self.page.update()
+            except:
+                pass
             await asyncio.sleep(1)
         
 
@@ -636,7 +639,8 @@ class Settings(ft.Column):
     def handle_banner_close(self, e: ft.Event[ft.TextButton]):
         self.page.pop_dialog()
 
-    def save_pisos_config(self, e):
+    async def save_pisos_config(self, e):
+        await e.control.focus()  # aquí e.control es el TextField, no sirve
         self.page._remove_dialog(self.banner)
         p1 = self.alturap1.value
         p2 = self.alturap2.value
@@ -657,7 +661,8 @@ class Settings(ft.Column):
             self.banner.content = ft.Text(value="Sin cambios")
             self.page.show_dialog(self.banner)
 
-    def save_amr_config(self, e):
+    async def save_amr_config(self, e):
+        await e.control.focus()  # aquí e.control es el TextField, no sirve
         self.page._remove_dialog(self.banner)
         alias = self.txtalias.value
         ip = self.txtip.value
@@ -864,7 +869,14 @@ class ventana():
         
     def show_settings(self):
         self.page.controls.clear()
-        self.page.add(ft.SafeArea(self.settings))
+        self.page.add(
+            ft.GestureDetector(
+                expand=True,                 # ocupa todo el espacio disponible
+                hover_interval=50,
+                on_tap=lambda e: print(e),
+                content=ft.SafeArea(self.settings)
+            )
+        )
     
 
     def build(self):
